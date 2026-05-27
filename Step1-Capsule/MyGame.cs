@@ -23,10 +23,10 @@ public class ViewerGame : Game
 	private const float ViewAngle = 60.0f;
 	// Hero ground height
 	private const float DefaultY = 1;
-	// Jump gravity acceleration
-	private const float Gravity = 0.015f;
+	// Jump gravity acceleration per second
+	private const float Gravity = 12f;
 	// Jump initial velocity
-	private const float JumpForce = 0.5f;
+	private const float JumpForce = 10f;
 
 	private readonly GraphicsDeviceManager _graphics;
 
@@ -55,8 +55,7 @@ public class ViewerGame : Game
 	private MouseState? _oldMouse = null;
 
 	// Jump state and physics
-	private bool _isJumping = false;
-	private float _jumpVelocity;
+	private DateTime? _jumpStarted;
 	private Vector3 _jumpMovement;
 
 	/// <summary>Initializes the game with graphics and input configuration.</summary>
@@ -97,17 +96,6 @@ public class ViewerGame : Game
 		_heroPosition = new Vector3(0, DefaultY, 0);
 	}
 
-	/// <summary>Start a jump with momentum.</summary>
-	private void Jump(Vector3 movement)
-	{
-		// Prevent double-jumping
-		if (_isJumping) return;
-
-		_jumpVelocity = JumpForce;
-		_jumpMovement = movement;
-		_isJumping = true;
-	}
-
 	protected override void Update(GameTime gameTime)
 	{
 		base.Update(gameTime);
@@ -132,7 +120,7 @@ public class ViewerGame : Game
 		_oldMouse = mouse;
 
 		// Handle movement and jumping
-		if (!_isJumping)
+		if (_jumpStarted == null)
 		{
 			// WASD movement
 			var velocity = Vector3.Zero;
@@ -151,20 +139,29 @@ public class ViewerGame : Game
 			_heroPosition += velocity;
 
 			if (keyboard.IsKeyDown(Keys.Space))
-				Jump(velocity);
+			{
+				// Jump
+				_jumpStarted = DateTime.Now;
+				_jumpMovement = velocity;
+			}
 		}
 		else
 		{
-			// Apply gravity and move during jump
-			_jumpVelocity -= Gravity;
-			_heroPosition.Y += _jumpVelocity;
+			// When moving with acceleration
+			// Formula for the jump height: h = h0 + v0 * t - 0.5 * g * t^2
+			// Where h0 is the initial height(DefaultY), v0 is the initial jump velocity(JumpForce), g is the gravity(JumpGravity), and t is the time passed since jump started
+
+			var t = (float)(DateTime.Now - _jumpStarted.Value).TotalSeconds;
+
+			var jumpHeight = DefaultY + (JumpForce * t) - (0.5f * Gravity * t * t);
+			_heroPosition.Y = jumpHeight;
 			_heroPosition += _jumpMovement;
 
 			// Land when reaching ground
 			if (_heroPosition.Y <= DefaultY)
 			{
 				_heroPosition.Y = DefaultY;
-				_isJumping = false;
+				_jumpStarted = null;
 			}
 		}
 	}
