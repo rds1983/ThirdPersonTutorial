@@ -1,0 +1,13 @@
+<Project>
+  <PropertyGroup>
+    <Authors>ThirdPersonTutorialTeam</Authors>
+    <Product>ThirdPersonTutorial</Product>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <PackageProjectUrl>https://github.com/rds1983/ThirdPersonTutorial</PackageProjectUrl>
+    <Description>Making a third person game in MonoGame</Description>
+    <RootNamespace>ThirdPersonTutorial</RootNamespace>
+    <MyTargetFramework>net8.0</MyTargetFramework>
+    <MonoGameVersion>3.8.4.1</MonoGameVersion>
+    <DigitalRiseModelVersion>0.7.4</DigitalRiseModelVersion>
+  </PropertyGroup>
+</Project>
