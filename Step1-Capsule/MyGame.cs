@@ -30,19 +30,25 @@ public class ViewerGame : Game
 
 	private readonly GraphicsDeviceManager _graphics;
 
-	// Rendering
+	// Renders all meshes with directional lighting and optional textures
 	private BasicEffect _basicEffect;
-	private Texture2D _textureField;
-	private DrMesh _meshGround, _meshHero;
 
-	// Hero state
-	// World position of the hero's feet
+	// Checkerboard texture applied to the ground plane for visual reference
+	private Texture2D _textureGround;
+
+	// Ground plane mesh
+	private DrMesh _meshGround;
+
+	// Hero character mesh: capsule shape representing the player-controlled avatar
+	private DrMesh _meshHero;
+
+	// Hero position in the world
 	private Vector3 _heroPosition;
 
-	// Yaw rotation (Y-axis) for the hero's body - controls which direction the character faces (turning left/right)
+	// Yaw rotation (Y-axis) in degrees for the hero's body - controls which direction the character faces (turning left/right)
 	private float _heroYaw;
 
-	// Pitch rotation (X-axis) for the camera mount - controls up/down head tilt from mouse look (looking up/down)
+	// Pitch rotation (X-axis) in degrees for the camera mount - controls up/down head tilt from mouse look (looking up/down)
 	private float _cameraMountPitch;
 
 	// Input tracking for mouse delta calculation
@@ -76,7 +82,7 @@ public class ViewerGame : Game
 
 		// Load checkerboard texture for the ground through XNAssets
 		var assetManager = AssetManager.CreateFileAssetManager(Path.Combine(AppContext.BaseDirectory, "Assets"));
-		_textureField = assetManager.LoadTexture2D(GraphicsDevice, "Textures/checker.dds");
+		_textureGround = assetManager.LoadTexture2D(GraphicsDevice, "Textures/checker.dds");
 
 		// Create a large ground plane (50x50 uv scales) with 200x200 world scale applied later
 		_meshGround = MeshPrimitives.CreatePlaneMesh(GraphicsDevice, uScale: 50, vScale: 50, normalDirection: NormalDirection.UpY);
@@ -148,8 +154,8 @@ public class ViewerGame : Game
 			// Handle ground-based movement (WASD)
 			var velocity = Vector3.Zero;
 
-			// Get hero's local transform to calculate forward/right directions
-			var heroTransform = ToMatrix(_heroPosition, Vector3.One, new Vector3(0, _heroYaw, 0));
+			// Calculate hero's transform to get movement directions relative to facing direction
+			var heroTransform = ToMatrix(_heroPosition, Vector3.One, _heroYaw, 0, 0);
 			var keyboard = Keyboard.GetState();
 
 			// Movement is relative to hero's facing direction
@@ -257,25 +263,20 @@ public class ViewerGame : Game
 		_basicEffect.Projection = projection;
 
 		// --- Hierarchical transform system for third-person camera ---
-		// 1. Hero body: positioned in world, rotated only by yaw (turning left/right)
-		//    Yaw controls which direction the character faces
-		var heroTransform = ToMatrix(_heroPosition, Vector3.One, new Vector3(0, _heroYaw, 0));
+		// 1. Hero body: positioned in world, rotated by yaw only (turning left/right)
+		var heroTransform = ToMatrix(_heroPosition, Vector3.One, _heroYaw, 0, 0);
 
-		// 2. Camera mount: represents "head" position (1 unit above feet), rotated by pitch (looking up/down)
-		//    This is attached to the hero body, so inherits the hero's yaw rotation
-		//    Pitch is applied at the head level independently of body rotation
-		var cameraMountTransform = ToMatrix(new Vector3(0, 1f, 0), Vector3.One, new Vector3(_cameraMountPitch, 0, 0)) * heroTransform;
+		// 2. Camera mount: represents head position (1 unit up), rotated by pitch (looking up/down), inherits hero yaw
+		var cameraMountTransform = ToMatrix(new Vector3(0, 1f, 0), Vector3.One, 0, _cameraMountPitch, 0) * heroTransform;
 
-		// 3. Camera: positioned 5 units behind and above the head, rotated 180° to face the hero's back
-		//    This is attached to the camera mount, inheriting all parent transforms (hero yaw + head pitch)
-		//    Offset of 5 units provides a comfortable third-person distance
-		var cameraTransform = ToMatrix(new Vector3(0, 0, -5), Vector3.One, new Vector3(0, 180, 0)) * cameraMountTransform;
+		// 3. Camera: positioned 5 units behind head, rotated 180° to face hero's back, inherits all parent rotations
+		var cameraTransform = ToMatrix(new Vector3(0, 0, -5), Vector3.One, 180, 0, 0) * cameraMountTransform;
 
 		// Convert camera transform to view matrix (inverse of camera position/rotation)
 		_basicEffect.View = Matrix.Invert(cameraTransform);
 
 		// Draw the ground plane (scaled 200x200 world units)
-		DrawMesh(_meshGround, Matrix.CreateScale(200, 1, 200), Color.White, _textureField);
+		DrawMesh(_meshGround, Matrix.CreateScale(200, 1, 200), Color.White, _textureGround);
 
 		// Draw the hero capsule at its current position and rotation
 		DrawMesh(_meshHero, heroTransform, Color.Green, null);
@@ -287,11 +288,13 @@ public class ViewerGame : Game
 	/// </summary>
 	/// <param name="position">World position</param>
 	/// <param name="scale">Uniform scale factors</param>
-	/// <param name="rotationInDegrees">Rotation in degrees (X=pitch, Y=yaw, Z=roll)</param>
-	private static Matrix ToMatrix(Vector3 position, Vector3 scale, Vector3 rotationInDegrees)
+	/// <param name="yaw">Yaw rotation in degrees</param>
+	/// <param name="pitch">Pitch rotation in degrees</param>
+	/// <param name="roll">Roll rotation in degrees</param>
+	private static Matrix ToMatrix(Vector3 position, Vector3 scale, float yaw, float pitch, float roll)
 	{
 		var scaleTransform = Matrix.CreateScale(scale);
-		var rotation = Matrix.CreateFromYawPitchRoll(MathHelper.ToRadians(rotationInDegrees.Y), MathHelper.ToRadians(rotationInDegrees.X), MathHelper.ToRadians(rotationInDegrees.Z));
+		var rotation = Matrix.CreateFromYawPitchRoll(MathHelper.ToRadians(yaw), MathHelper.ToRadians(pitch), MathHelper.ToRadians(roll));
 		var translation = Matrix.CreateTranslation(position);
 
 		return scaleTransform * rotation * translation;
