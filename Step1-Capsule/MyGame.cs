@@ -11,50 +11,50 @@ namespace ThirdPersonTutorial;
 
 public class ViewerGame : Game
 {
-	// Camera control: scales mouse delta to rotation change (higher = more sensitive)
+	// Mouse look sensitivity multiplier
 	private const float MouseSensitivity = 0.2f;
-	// Character movement: distance units per frame when moving
+	// Movement speed per frame
 	private const float MovementSpeed = 0.1f;
-	// Camera frustum: closest object that renders
+	// Camera near clipping plane
 	private const float NearPlaneDistance = 0.1f;
-	// Camera frustum: farthest object that renders
+	// Camera far clipping plane
 	private const float FarPlaneDistance = 1000.0f;
 	// Camera field of view in degrees
 	private const float ViewAngle = 60.0f;
-	// Default height for the hero (keeps them above ground plane)
+	// Hero ground height
 	private const float DefaultY = 1;
-	// Physics gravity: acceleration downward per frame while jumping
+	// Jump gravity acceleration
 	private const float Gravity = 0.015f;
-	// Initial upward velocity when jumping
+	// Jump initial velocity
 	private const float JumpForce = 0.5f;
 
 	private readonly GraphicsDeviceManager _graphics;
 
-	// Renders all meshes with directional lighting and optional textures
+	// Stock effect with directional lighting and texturing
 	private BasicEffect _basicEffect;
 
-	// Checkerboard texture applied to the ground plane for visual reference
+	// Ground plane texture
 	private Texture2D _textureGround;
 
 	// Ground plane mesh
 	private DrMesh _meshGround;
 
-	// Hero character mesh: capsule shape representing the player-controlled avatar
+	// Capsule mesh for the player
 	private DrMesh _meshHero;
 
-	// Hero position in the world
+	// Hero position in world space
 	private Vector3 _heroPosition;
 
-	// Yaw rotation (Y-axis) in degrees for the hero's body - controls which direction the character faces (turning left/right)
+	// Hero body yaw rotation in degrees
 	private float _heroYaw;
 
-	// Pitch rotation (X-axis) in degrees for the camera mount - controls up/down head tilt from mouse look (looking up/down)
+	// Camera mount pitch rotation in degrees
 	private float _cameraMountPitch;
 
-	// Input tracking for mouse delta calculation
+	// Previous mouse state for delta calculation
 	private MouseState? _oldMouse = null;
 
-	// Jump physics state
+	// Jump state and physics
 	private bool _isJumping = false;
 	private float _jumpVelocity;
 	private Vector3 _jumpMovement;
@@ -75,51 +75,36 @@ public class ViewerGame : Game
 		Window.AllowUserResizing = true;
 	}
 
-	/// <summary>Loads all game content and scene setup.</summary>
 	protected override void LoadContent()
 	{
 		base.LoadContent();
 
-		// Load checkerboard texture for the ground through XNAssets
+		// Load ground texture
 		var assetManager = AssetManager.CreateFileAssetManager(Path.Combine(AppContext.BaseDirectory, "Assets"));
 		_textureGround = assetManager.LoadTexture2D(GraphicsDevice, "Textures/checker.dds");
 
-		// Create a large ground plane (50x50 uv scales) with 200x200 world scale applied later
+		// Create ground and hero meshes
 		_meshGround = MeshPrimitives.CreatePlaneMesh(GraphicsDevice, uScale: 50, vScale: 50, normalDirection: NormalDirection.UpY);
-
-		// Create a capsule mesh for the hero character
 		_meshHero = MeshPrimitives.CreateCapsuleMesh(GraphicsDevice);
 
-		// Configure the basic effect with lighting
-		_basicEffect = new BasicEffect(GraphicsDevice)
-		{
-			LightingEnabled = true
-		};
-
-		// Set up a directional light from above-left-front
+		// Set up rendering effect with lighting
+		_basicEffect = new BasicEffect(GraphicsDevice) { LightingEnabled = true };
 		_basicEffect.DirectionalLight0.Enabled = true;
 		_basicEffect.DirectionalLight0.Direction = new Vector3(-1, -1, -1);
 		_basicEffect.DirectionalLight0.DiffuseColor = Color.White.ToVector3();
 
-		// Initialize hero in the center of the world at default height
+		// Start hero at world center
 		_heroPosition = new Vector3(0, DefaultY, 0);
 	}
 
-	/// <summary>Initiates a jump with optional forward momentum.</summary>
-	/// <param name="movement">World-space velocity to apply during the jump arc</param>
+	/// <summary>Start a jump with momentum.</summary>
 	private void Jump(Vector3 movement)
 	{
-		// Prevent double-jumping mid-air
-		if (_isJumping)
-		{
-			return;
-		}
+		// Prevent double-jumping
+		if (_isJumping) return;
 
-		// Set initial upward velocity
 		_jumpVelocity = JumpForce;
-		// Preserve horizontal momentum from movement input during jump
 		_jumpMovement = movement;
-
 		_isJumping = true;
 	}
 
@@ -127,71 +112,55 @@ public class ViewerGame : Game
 	{
 		base.Update(gameTime);
 
-		// --- Input handling: Mouse ---
+		// Handle mouse input for camera rotation
 		var mouse = Mouse.GetState();
 
 		if (_oldMouse != null)
 		{
-			// Calculate horizontal (yaw) rotation from mouse X delta
-			// This rotates the hero's body to face the direction the player looks
+			// Rotate hero by mouse X delta
 			var horizontalRotation = -(int)((mouse.X - _oldMouse.Value.X) * MouseSensitivity);
 			_heroYaw += horizontalRotation;
 
-			// Calculate vertical (pitch) rotation from mouse Y delta
-			// This tilts the camera up/down at the head, independent of body rotation
+			// Tilt camera by mouse Y delta
 			var verticalRotation = -(int)((mouse.Y - _oldMouse.Value.Y) * MouseSensitivity);
 			_cameraMountPitch += verticalRotation;
 
-			// Clamp vertical look angle: allows looking 20° down and 70° up to prevent over-rotation
+			// Clamp pitch to valid range (-20 to 70 degrees)
 			_cameraMountPitch = MathHelper.Clamp(_cameraMountPitch, -20, 70);
 		}
 
 		_oldMouse = mouse;
 
-		// --- Movement and jumping logic ---
+		// Handle movement and jumping
 		if (!_isJumping)
 		{
-			// Handle ground-based movement (WASD)
+			// WASD movement
 			var velocity = Vector3.Zero;
-
-			// Calculate hero's transform to get movement directions relative to facing direction
 			var heroTransform = ToMatrix(_heroPosition, Vector3.One, _heroYaw, 0, 0);
 			var keyboard = Keyboard.GetState();
 
-			// Movement is relative to hero's facing direction
 			if (keyboard.IsKeyDown(Keys.W))
-			{
 				velocity = heroTransform.Forward * -MovementSpeed;
-			}
 			else if (keyboard.IsKeyDown(Keys.S))
-			{
 				velocity = heroTransform.Forward * MovementSpeed;
-			}
 			else if (keyboard.IsKeyDown(Keys.A))
-			{
 				velocity = heroTransform.Right * MovementSpeed;
-			}
 			else if (keyboard.IsKeyDown(Keys.D))
-			{
 				velocity = heroTransform.Right * -MovementSpeed;
-			}
 
 			_heroPosition += velocity;
 
-			// Jump with current movement velocity to maintain momentum
 			if (keyboard.IsKeyDown(Keys.Space))
-			{
 				Jump(velocity);
-			}
 		}
 		else
 		{
-			// Update jump state: apply gravity and move along jump trajectory
+			// Apply gravity and move during jump
 			_jumpVelocity -= Gravity;
 			_heroPosition.Y += _jumpVelocity;
 			_heroPosition += _jumpMovement;
 
-			// Landing detection: stop jumping when feet reach ground level
+			// Land when reaching ground
 			if (_heroPosition.Y <= DefaultY)
 			{
 				_heroPosition.Y = DefaultY;
@@ -200,40 +169,23 @@ public class ViewerGame : Game
 		}
 	}
 
-	/// <summary>Renders a mesh with the specified world transform, color tint, and optional texture.</summary>
+	/// <summary>Render a mesh with color and texture.</summary>
 	private void DrawMesh(DrMesh mesh, Matrix world, Color color, Texture2D texture)
 	{
-		// Apply color tint to the mesh
 		_basicEffect.DiffuseColor = color.ToVector3();
-
-		// Apply optional texture; if null, render with solid color only
-		if (texture != null)
-		{
-			_basicEffect.TextureEnabled = true;
-			_basicEffect.Texture = texture;
-		}
-		else
-		{
-			_basicEffect.TextureEnabled = false;
-			_basicEffect.Texture = null;
-		}
-
-		// Set world transformation matrix
+		_basicEffect.TextureEnabled = texture != null;
+		_basicEffect.Texture = texture;
 		_basicEffect.World = world;
-		var device = GraphicsDevice;
 
-		// Draw each part of the mesh (may have multiple parts for complex models)
+		var device = GraphicsDevice;
 		foreach (var part in mesh.MeshParts)
 		{
-			// Bind vertex and index buffers for this mesh part
 			device.SetVertexBuffer(part.VertexBuffer);
 			device.Indices = part.IndexBuffer;
 
-			// Execute rendering passes (typically one pass for BasicEffect)
 			foreach (EffectPass pass in _basicEffect.CurrentTechnique.Passes)
 			{
 				pass.Apply();
-				// Draw using indexed primitives (indices define triangle connectivity)
 				device.DrawIndexedPrimitives(PrimitiveType.TriangleList, 0, 0, part.PrimitiveCount);
 			}
 		}
@@ -244,53 +196,34 @@ public class ViewerGame : Game
 		base.Draw(gameTime);
 
 		var device = GraphicsDevice;
-
-		// Clear the backbuffer with black
 		device.Clear(Color.Black);
 
-		// Set up GPU rendering state
+		// Set GPU states
 		device.DepthStencilState = DepthStencilState.Default;
 		device.RasterizerState = RasterizerState.CullCounterClockwise;
 		device.BlendState = BlendState.AlphaBlend;
 		device.SamplerStates[0] = SamplerState.LinearWrap;
 
-		// Set up camera projection matrix (perspective field of view)
+		// Set projection
 		var projection = Matrix.CreatePerspectiveFieldOfView(
-				MathHelper.ToRadians(ViewAngle),
-				device.Viewport.AspectRatio,
-				NearPlaneDistance, FarPlaneDistance
-			);
+			MathHelper.ToRadians(ViewAngle),
+			device.Viewport.AspectRatio,
+			NearPlaneDistance, FarPlaneDistance);
 		_basicEffect.Projection = projection;
 
-		// --- Hierarchical transform system for third-person camera ---
-		// 1. Hero body: positioned in world, rotated by yaw only (turning left/right)
+		// Build camera hierarchy: hero body -> camera mount (head) -> camera
 		var heroTransform = ToMatrix(_heroPosition, Vector3.One, _heroYaw, 0, 0);
-
-		// 2. Camera mount: represents head position (1 unit up), rotated by pitch (looking up/down), inherits hero yaw
 		var cameraMountTransform = ToMatrix(new Vector3(0, 1f, 0), Vector3.One, 0, _cameraMountPitch, 0) * heroTransform;
-
-		// 3. Camera: positioned 5 units behind head, rotated 180° to face hero's back, inherits all parent rotations
 		var cameraTransform = ToMatrix(new Vector3(0, 0, -5), Vector3.One, 180, 0, 0) * cameraMountTransform;
 
-		// Convert camera transform to view matrix (inverse of camera position/rotation)
 		_basicEffect.View = Matrix.Invert(cameraTransform);
 
-		// Draw the ground plane (scaled 200x200 world units)
+		// Draw ground and hero
 		DrawMesh(_meshGround, Matrix.CreateScale(200, 1, 200), Color.White, _textureGround);
-
-		// Draw the hero capsule at its current position and rotation
 		DrawMesh(_meshHero, heroTransform, Color.Green, null);
 	}
 
-	/// <summary>
-	/// Converts position, scale, and rotation into a transformation matrix.
-	/// Order: Scale -> Rotate -> Translate (standard TRS order)
-	/// </summary>
-	/// <param name="position">World position</param>
-	/// <param name="scale">Uniform scale factors</param>
-	/// <param name="yaw">Yaw rotation in degrees</param>
-	/// <param name="pitch">Pitch rotation in degrees</param>
-	/// <param name="roll">Roll rotation in degrees</param>
+	/// <summary>Build transform matrix from position, scale, and rotation (TRS order).</summary>
 	private static Matrix ToMatrix(Vector3 position, Vector3 scale, float yaw, float pitch, float roll)
 	{
 		var scaleTransform = Matrix.CreateScale(scale);
