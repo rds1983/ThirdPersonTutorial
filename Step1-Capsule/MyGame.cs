@@ -87,7 +87,7 @@ public class ViewerGame : Game
 		// Create a large ground plane (50x50 uv scales) with 200x200 world scale applied later
 		_meshGround = MeshPrimitives.CreatePlaneMesh(GraphicsDevice, uScale: 50, vScale: 50, normalDirection: NormalDirection.UpY);
 
-		// Create a capsule mesh for the hero character (simple geometric shape)
+		// Create a capsule mesh for the hero character
 		_meshHero = MeshPrimitives.CreateCapsuleMesh(GraphicsDevice);
 
 		// Configure the basic effect with lighting
