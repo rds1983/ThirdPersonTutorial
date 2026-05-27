@@ -35,10 +35,15 @@ public class ViewerGame : Game
 	private Texture2D _textureField;
 	private DrMesh _meshGround, _meshHero;
 
-	// Hero state: position and rotation in world space
-	private Vector3 _heroPosition, _heroRotation;
-	// Camera rotation relative to hero (pitch and yaw for head look)
-	private Vector3 _cameraMountRotation;
+	// Hero state
+	// World position of the hero's feet
+	private Vector3 _heroPosition;
+
+	// Yaw rotation (Y-axis) for the hero's body - controls which direction the character faces (turning left/right)
+	private float _heroYaw;
+
+	// Pitch rotation (X-axis) for the camera mount - controls up/down head tilt from mouse look (looking up/down)
+	private float _cameraMountPitch;
 
 	// Input tracking for mouse delta calculation
 	private MouseState? _oldMouse = null;
@@ -69,10 +74,10 @@ public class ViewerGame : Game
 	{
 		base.LoadContent();
 
+		// Load checkerboard texture for the ground through XNAssets
 		var assetManager = AssetManager.CreateFileAssetManager(Path.Combine(AppContext.BaseDirectory, "Assets"));
-
-		// Load checkerboard texture for the ground
 		_textureField = assetManager.LoadTexture2D(GraphicsDevice, "Textures/checker.dds");
+
 		// Create a large ground plane (50x50 uv scales) with 200x200 world scale applied later
 		_meshGround = MeshPrimitives.CreatePlaneMesh(GraphicsDevice, uScale: 50, vScale: 50, normalDirection: NormalDirection.UpY);
 
@@ -122,15 +127,17 @@ public class ViewerGame : Game
 		if (_oldMouse != null)
 		{
 			// Calculate horizontal (yaw) rotation from mouse X delta
+			// This rotates the hero's body to face the direction the player looks
 			var horizontalRotation = -(int)((mouse.X - _oldMouse.Value.X) * MouseSensitivity);
-			_heroRotation.Y += horizontalRotation;
+			_heroYaw += horizontalRotation;
 
 			// Calculate vertical (pitch) rotation from mouse Y delta
+			// This tilts the camera up/down at the head, independent of body rotation
 			var verticalRotation = -(int)((mouse.Y - _oldMouse.Value.Y) * MouseSensitivity);
-			_cameraMountRotation.X += verticalRotation;
+			_cameraMountPitch += verticalRotation;
 
-			// Clamp vertical look angle to prevent looking too far up/down (5-90 degrees)
-			_cameraMountRotation.X = MathHelper.Clamp(_cameraMountRotation.X, 5, 90);
+			// Clamp vertical look angle: allows looking 20° down and 70° up to prevent over-rotation
+			_cameraMountPitch = MathHelper.Clamp(_cameraMountPitch, -20, 70);
 		}
 
 		_oldMouse = mouse;
@@ -140,8 +147,9 @@ public class ViewerGame : Game
 		{
 			// Handle ground-based movement (WASD)
 			var velocity = Vector3.Zero;
+
 			// Get hero's local transform to calculate forward/right directions
-			var heroTransform = ToMatrix(_heroPosition, Vector3.One, _heroRotation);
+			var heroTransform = ToMatrix(_heroPosition, Vector3.One, new Vector3(0, _heroYaw, 0));
 			var keyboard = Keyboard.GetState();
 
 			// Movement is relative to hero's facing direction
@@ -248,16 +256,19 @@ public class ViewerGame : Game
 			);
 		_basicEffect.Projection = projection;
 
-		// --- Hierarchical transform system for camera ---
-		// 1. Hero body: positioned in world, rotated by player input (YAW only)
-		var heroTransform = ToMatrix(_heroPosition, Vector3.One, _heroRotation);
+		// --- Hierarchical transform system for third-person camera ---
+		// 1. Hero body: positioned in world, rotated only by yaw (turning left/right)
+		//    Yaw controls which direction the character faces
+		var heroTransform = ToMatrix(_heroPosition, Vector3.One, new Vector3(0, _heroYaw, 0));
 
-		// 2. Camera mount: represents "head" position (1 unit above feet) and pitch from mouse Y
-		//    This is attached to the hero body, so it inherits hero rotation
-		var cameraMountTransform = ToMatrix(new Vector3(0, 1f, 0), Vector3.One, _cameraMountRotation) * heroTransform;
+		// 2. Camera mount: represents "head" position (1 unit above feet), rotated by pitch (looking up/down)
+		//    This is attached to the hero body, so inherits the hero's yaw rotation
+		//    Pitch is applied at the head level independently of body rotation
+		var cameraMountTransform = ToMatrix(new Vector3(0, 1f, 0), Vector3.One, new Vector3(_cameraMountPitch, 0, 0)) * heroTransform;
 
-		// 3. Camera: positioned 5 units behind the head, rotated 180° to look forward
-		//    This is attached to the camera mount, so it inherits all parent rotations
+		// 3. Camera: positioned 5 units behind and above the head, rotated 180° to face the hero's back
+		//    This is attached to the camera mount, inheriting all parent transforms (hero yaw + head pitch)
+		//    Offset of 5 units provides a comfortable third-person distance
 		var cameraTransform = ToMatrix(new Vector3(0, 0, -5), Vector3.One, new Vector3(0, 180, 0)) * cameraMountTransform;
 
 		// Convert camera transform to view matrix (inverse of camera position/rotation)
