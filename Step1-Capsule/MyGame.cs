@@ -5,7 +5,6 @@ using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using Microsoft.Xna.Framework.Input;
 using System;
-using System.Diagnostics;
 using System.IO;
 
 namespace ThirdPersonTutorial;
@@ -18,6 +17,8 @@ public class ViewerGame : Game
 	private const float FarPlaneDistance = 1000.0f;
 	private const float ViewAngle = 60.0f;
 	private const float DefaultY = 1;
+	private const float Gravity = 0.015f;
+	private const float JumpForce = 0.5f;
 
 	private readonly GraphicsDeviceManager _graphics;
 
@@ -27,6 +28,9 @@ public class ViewerGame : Game
 	private Vector3 _heroPosition, _heroRotation;
 	private Vector3 _cameraMountRotation;
 	private MouseState? _oldMouse = null;
+	private bool _isJumping = false;
+	private float _jumpVelocity;
+	private Vector3 _jumpMovement;
 
 	/// <summary>Initializes game with graphics and input configuration.</summary>
 	public ViewerGame()
@@ -67,7 +71,19 @@ public class ViewerGame : Game
 		_heroPosition = new Vector3(0, DefaultY, 0);
 	}
 
-	/// <summary>Updates game logic: input, animations, FPS counter.</summary>
+	private void Jump(Vector3 movement)
+	{
+		if (_isJumping)
+		{
+			return;
+		}
+
+		_jumpVelocity = JumpForce;
+		_jumpMovement = movement;
+
+		_isJumping = true;
+	}
+
 	protected override void Update(GameTime gameTime)
 	{
 		base.Update(gameTime);
@@ -87,53 +103,51 @@ public class ViewerGame : Game
 
 		_oldMouse = mouse;
 
-		// Process WASD movement
-		var velocity = Vector3.Zero;
-
-		var heroTransform = ToMatrix(_heroPosition, Vector3.One, _heroRotation);
-
-		var keyboard = Keyboard.GetState();
-
-		if (keyboard.IsKeyDown(Keys.W))
+		if (!_isJumping)
 		{
-			velocity = heroTransform.Forward * -MovementSpeed;
+			// Process WASD movement
+			var velocity = Vector3.Zero;
+
+			var heroTransform = ToMatrix(_heroPosition, Vector3.One, _heroRotation);
+
+			var keyboard = Keyboard.GetState();
+
+			if (keyboard.IsKeyDown(Keys.W))
+			{
+				velocity = heroTransform.Forward * -MovementSpeed;
+			}
+			else if (keyboard.IsKeyDown(Keys.S))
+			{
+				velocity = heroTransform.Forward * MovementSpeed;
+			}
+			else if (keyboard.IsKeyDown(Keys.A))
+			{
+				velocity = heroTransform.Right * MovementSpeed;
+			}
+			else if (keyboard.IsKeyDown(Keys.D))
+			{
+				velocity = heroTransform.Right * -MovementSpeed;
+			}
+
+			_heroPosition += velocity;
+
+			if (keyboard.IsKeyDown(Keys.Space))
+			{
+				Jump(velocity);
+			}
 		}
-		else if (keyboard.IsKeyDown(Keys.S))
+		else
 		{
-			velocity = heroTransform.Forward * MovementSpeed;
+			_jumpVelocity -= Gravity;
+			_heroPosition.Y += _jumpVelocity;
+			_heroPosition += _jumpMovement;
+
+			if (_heroPosition.Y <= DefaultY)
+			{
+				_heroPosition.Y = DefaultY;
+				_isJumping = false;
+			}
 		}
-		else if (keyboard.IsKeyDown(Keys.A))
-		{
-			velocity = heroTransform.Right * MovementSpeed;
-		}
-		else if (keyboard.IsKeyDown(Keys.D))
-		{
-			velocity = heroTransform.Right * -MovementSpeed;
-		}
-
-		_heroPosition += velocity;
-
-		/*				if (keyboard.IsKeyDown(Keys.Space))
-							_characterService.Jump(velocity);
-
-						if (keyboard.IsKeyDown(Keys.LeftShift))
-							_characterService.Slash();
-
-						if (keyboard.IsKeyDown(Keys.R))
-						{
-							if (_characterService.WeaponDrawn)
-								_characterService.SheathWeapon();
-							else
-								_characterService.DrawWeapon();
-						}
-
-						if (isRunning)
-							_characterService.Run(velocity);
-						else
-							_characterService.Idle();
-
-						_characterService.Update(gameTime.ElapsedGameTime);
-						_fpsCounter.Update(gameTime);*/
 	}
 
 	private void DrawMesh(DrMesh mesh, Matrix world, Color color, Texture2D texture)
