@@ -17,6 +17,7 @@ public class ViewerGame : Game
 	private const float NearPlaneDistance = 0.1f;
 	private const float FarPlaneDistance = 1000.0f;
 	private const float ViewAngle = 60.0f;
+	private const float DefaultY = 1;
 
 	private readonly GraphicsDeviceManager _graphics;
 
@@ -62,6 +63,8 @@ public class ViewerGame : Game
 		_basicEffect.DirectionalLight0.Enabled = true;
 		_basicEffect.DirectionalLight0.Direction = new Vector3(-1, -1, -1);
 		_basicEffect.DirectionalLight0.DiffuseColor = Color.White.ToVector3();
+
+		_heroPosition = new Vector3(0, DefaultY, 0);
 	}
 
 	/// <summary>Updates game logic: input, animations, FPS counter.</summary>
@@ -78,56 +81,59 @@ public class ViewerGame : Game
 
 			var verticalRotation = -(int)((mouse.Y - _oldMouse.Value.Y) * MouseSensitivity);
 			_cameraMountRotation.X += verticalRotation;
+
+			_cameraMountRotation.X = MathHelper.Clamp(_cameraMountRotation.X, 5, 90);
 		}
 
 		_oldMouse = mouse;
 
-		/*		// Process WASD movement
-				var isRunning = false;
-				var velocity = Vector3.Zero;
+		// Process WASD movement
+		var velocity = Vector3.Zero;
 
-				if (_inputService.IsKeyDown(Keys.W))
-				{
-					velocity = ModelNode.GlobalTransform.Forward * -MovementSpeed;
-					isRunning = true;
-				}
-				else if (_inputService.IsKeyDown(Keys.S))
-				{
-					velocity = ModelNode.GlobalTransform.Forward * MovementSpeed;
-					isRunning = true;
-				}
-				else if (_inputService.IsKeyDown(Keys.A))
-				{
-					velocity = ModelNode.GlobalTransform.Right * MovementSpeed;
-					isRunning = true;
-				}
-				else if (_inputService.IsKeyDown(Keys.D))
-				{
-					velocity = ModelNode.GlobalTransform.Right * -MovementSpeed;
-					isRunning = true;
-				}
+		var heroTransform = ToMatrix(_heroPosition, Vector3.One, _heroRotation);
 
-				if (_inputService.IsKeyDown(Keys.Space))
-					_characterService.Jump(velocity);
+		var keyboard = Keyboard.GetState();
 
-				if (_inputService.IsKeyDown(Keys.LeftShift))
-					_characterService.Slash();
+		if (keyboard.IsKeyDown(Keys.W))
+		{
+			velocity = heroTransform.Forward * -MovementSpeed;
+		}
+		else if (keyboard.IsKeyDown(Keys.S))
+		{
+			velocity = heroTransform.Forward * MovementSpeed;
+		}
+		else if (keyboard.IsKeyDown(Keys.A))
+		{
+			velocity = heroTransform.Right * MovementSpeed;
+		}
+		else if (keyboard.IsKeyDown(Keys.D))
+		{
+			velocity = heroTransform.Right * -MovementSpeed;
+		}
 
-				if (_inputService.IsKeyDown(Keys.R))
-				{
-					if (_characterService.WeaponDrawn)
-						_characterService.SheathWeapon();
-					else
-						_characterService.DrawWeapon();
-				}
+		_heroPosition += velocity;
 
-				if (isRunning)
-					_characterService.Run(velocity);
-				else
-					_characterService.Idle();
+		/*				if (keyboard.IsKeyDown(Keys.Space))
+							_characterService.Jump(velocity);
 
-				_characterService.Update(gameTime.ElapsedGameTime);
-				_fpsCounter.Update(gameTime);*/
+						if (keyboard.IsKeyDown(Keys.LeftShift))
+							_characterService.Slash();
+
+						if (keyboard.IsKeyDown(Keys.R))
+						{
+							if (_characterService.WeaponDrawn)
+								_characterService.SheathWeapon();
+							else
+								_characterService.DrawWeapon();
+						}
+
+						if (isRunning)
+							_characterService.Run(velocity);
+						else
+							_characterService.Idle();
+
+						_characterService.Update(gameTime.ElapsedGameTime);
+						_fpsCounter.Update(gameTime);*/
 	}
 
 	private void DrawMesh(DrMesh mesh, Matrix world, Color color, Texture2D texture)
@@ -162,7 +168,6 @@ public class ViewerGame : Game
 		}
 	}
 
-	/// <summary>Renders 3D scene and UI overlay.</summary>
 	protected override void Draw(GameTime gameTime)
 	{
 		base.Draw(gameTime);
@@ -186,14 +191,13 @@ public class ViewerGame : Game
 		_basicEffect.Projection = projection;
 
 		// Firstly calculate the hero transform
-		_heroPosition = new Vector3(0, 2, 0);
 		var heroTransform = ToMatrix(_heroPosition, Vector3.One, _heroRotation);
 
 		// Now the camera mount, which is attached to the hero head
-		var cameraMountTransform = ToMatrix(new Vector3(0, 1.3f, 0), Vector3.One, _cameraMountRotation) * heroTransform;
+		var cameraMountTransform = ToMatrix(new Vector3(0, 1f, 0), Vector3.One, _cameraMountRotation) * heroTransform;
 
 		// Now the camera itself, which is attached to the camera mount with an offset
-		var cameraTransform = Matrix.CreateTranslation(0, 0, -2) * cameraMountTransform;
+		var cameraTransform = ToMatrix(new Vector3(0, 0, -5), Vector3.One, new Vector3(0, 180, 0)) * cameraMountTransform;
 
 		// Set view transform as the inverse of camera transform
 		_basicEffect.View = Matrix.Invert(cameraTransform);
@@ -202,8 +206,8 @@ public class ViewerGame : Game
 		DrawMesh(_meshGround, Matrix.CreateScale(200, 1, 200), Color.White, _textureField);
 
 		// Draw hero
-		DrawMesh(_meshHero, heroTransform, Color.Red, null);
-	 }
+		DrawMesh(_meshHero, heroTransform, Color.Green, null);
+	}
 
 	private static Matrix ToMatrix(Vector3 position, Vector3 scale, Vector3 rotationInDegrees)
 	{
