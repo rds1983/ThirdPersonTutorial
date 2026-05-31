@@ -13,12 +13,13 @@ namespace ThirdPersonTutorial;
 
 public class MyGame : Game
 {
+	// Animation states for hero character
 	private enum AnimationState
 	{
-		Idle,
-		Running,
-		Jumping,
-		Landing
+		Idle,      // Standing still
+		Running,   // Moving
+		Jumping,   // Jump startup
+		Landing    // Falling/landing
 	}
 
 	// Mouse look sensitivity multiplier
@@ -37,26 +38,35 @@ public class MyGame : Game
 	private const float Gravity = 12f;
 	// Jump initial velocity
 	private const float JumpForce = 10f;
+	// Duration for animation transitions between clips
 	private static readonly TimeSpan AnimationCrossFadeDelay = TimeSpan.FromSeconds(0.1f);
 
+	// Manages graphics device and display settings
 	private readonly GraphicsDeviceManager _graphics;
 
 	// Stock effect with directional lighting and texturing
 	private BasicEffect _basicEffect;
+	// Effect for rendering skeletal mesh with bone transformations
 	private SkinnedEffect _skinnedEffect;
 
 	// Ground plane texture
 	private Texture2D _textureGround;
+	// Solid white texture for models without material textures
 	private Texture2D _textureWhite;
 
 	// Ground plane mesh
 	private DrMesh _meshGround;
 
+	// Hero character model instance
 	private DrModelInstance _modelHero;
+	// Sword weapon model instance
 	private DrModelInstance _modelSword;
+	// Reference to hero's spine bone for sword attachment
 	private DrModelBone _boneSpine;
 
+	// Animation state machine for playing and transitioning clips
 	private AnimationController _player;
+	// Current animation state (Idle, Running, Jumping, Landing)
 	private AnimationState _animationState;
 
 	// Hero position in world space
@@ -237,6 +247,7 @@ public class MyGame : Game
 		_player.Update(gameTime.ElapsedGameTime);
 	}
 
+	// Draw a single mesh part with the given effect
 	private void DrawMeshPart(Effect effect, DrMeshPart part)
 	{
 		GraphicsDevice.SetVertexBuffer(part.VertexBuffer);
@@ -268,6 +279,7 @@ public class MyGame : Game
 		}
 	}
 
+	// Render model with material colors and textures, handling both skinned and static meshes
 	private void DrawModel(DrModelInstance model, Matrix world)
 	{
 		foreach (var mesh in model.Model.Meshes)
@@ -288,6 +300,8 @@ public class MyGame : Game
 
 				if (part.Skin != null)
 				{
+					// Skinned mesh: bone transforms applied per-vertex in shader via SetBoneTransforms
+					// World matrix only positions the entire model in world space
 					_skinnedEffect.DiffuseColor = color.ToVector3();
 					_skinnedEffect.Texture = texture;
 					_skinnedEffect.World = world;
@@ -297,6 +311,8 @@ public class MyGame : Game
 				}
 				else
 				{
+					// Static mesh: must include bone transform in World matrix since GPU doesn't apply skeletal deformation
+					// Bone transform positions this mesh part relative to the model, then world positions the whole model
 					_basicEffect.DiffuseColor = color.ToVector3();
 					_basicEffect.Texture = texture;
 					_basicEffect.World = model.GetBoneGlobalTransform(mesh.ParentBone.Index) * world;
@@ -340,14 +356,9 @@ public class MyGame : Game
 		DrawMesh(_meshGround, Matrix.CreateScale(200, 1, 200), Color.White, _textureGround);
 		DrawModel(_modelHero, heroTransform);
 
-		// Attach sword to hero's back
-		var transform = new SrtTransform
-		{
-			Translation = new Vector3(-12f, 0, -20f),
-			Scale = new Vector3(16),
-			Rotation = Quaternion.CreateFromAxisAngle(Vector3.UnitZ, MathHelper.ToRadians(180.0f))
-		};
-
+		// Attach sword to hero's spine bone (positioned on back)
+		// Transform chain: local sword offset -> spine bone transform -> hero world transform
+		// Local offset: position (-12, 0, -20) relative to spine, scale 16x, rotated 180 degrees on Z axis
 		var swordTransform = ToMatrix(new Vector3(-12, 0, -20), new Vector3(16), 0, 0, 180) * _modelHero.GetBoneGlobalTransform(_boneSpine.Index) * heroTransform;
 		DrawModel(_modelSword, swordTransform);
 	}
