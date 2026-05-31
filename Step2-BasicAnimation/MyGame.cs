@@ -6,7 +6,6 @@ using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using Microsoft.Xna.Framework.Input;
 using System;
-using System.Diagnostics;
 using System.IO;
 
 namespace ThirdPersonTutorial;
@@ -162,79 +161,80 @@ public class MyGame : Game
 		_oldMouse = mouse;
 	}
 
+	// Handle keyboard input for movement and jump initiation
 	private void ProcessKeyboard()
 	{
-		// Handle movement and jumping
-		if (_jumpStarted == null)
-		{
-			// WASD movement
-			var velocity = Vector3.Zero;
-			var heroTransform = ToMatrix(_heroPosition, Vector3.One, _heroYaw, 0, 0);
-			var keyboard = Keyboard.GetState();
+		// Calculate movement velocity based on hero orientation
+		var velocity = Vector3.Zero;
+		var heroTransform = ToMatrix(_heroPosition, Vector3.One, _heroYaw, 0, 0);
+		var keyboard = Keyboard.GetState();
 
-			var isRunning = true;
-			if (keyboard.IsKeyDown(Keys.W))
-				velocity = heroTransform.Forward * -MovementSpeed;
-			else if (keyboard.IsKeyDown(Keys.S))
-				velocity = heroTransform.Forward * MovementSpeed;
-			else if (keyboard.IsKeyDown(Keys.A))
-				velocity = heroTransform.Right * MovementSpeed;
-			else if (keyboard.IsKeyDown(Keys.D))
-				velocity = heroTransform.Right * -MovementSpeed;
-			else
-				isRunning = false;
-
-			// Update animation state based on movement
-			if (_animationState != AnimationState.Running && isRunning)
-			{
-				_player.CrossfadeToClip("Run", AnimationCrossFadeDelay, AnimationFlags.Looped);
-				_animationState = AnimationState.Running;
-			}
-			else if (_animationState != AnimationState.Idle && !isRunning)
-			{
-				_player.CrossfadeToClip("Idle", AnimationCrossFadeDelay, AnimationFlags.Looped);
-				_animationState = AnimationState.Idle;
-			}
-
-			_heroPosition += velocity;
-
-			if (keyboard.IsKeyDown(Keys.Space))
-			{
-				// Jump
-				_jumpStarted = DateTime.Now;
-				_animationState = AnimationState.Jumping;
-				_jumpMovement = velocity;
-				_player.CrossfadeToClip("JumpStart", AnimationCrossFadeDelay);
-			}
-		}
+		// Track if hero is moving (for animation transitions)
+		var isRunning = true;
+		if (keyboard.IsKeyDown(Keys.W))
+			velocity = heroTransform.Forward * -MovementSpeed;
+		else if (keyboard.IsKeyDown(Keys.S))
+			velocity = heroTransform.Forward * MovementSpeed;
+		else if (keyboard.IsKeyDown(Keys.A))
+			velocity = heroTransform.Right * MovementSpeed;
+		else if (keyboard.IsKeyDown(Keys.D))
+			velocity = heroTransform.Right * -MovementSpeed;
 		else
+			isRunning = false;
+
+		// Transition between Run and Idle animations
+		if (_animationState != AnimationState.Running && isRunning)
 		{
-			// Time elapsed since jump started (seconds)
-			var t = (float)(DateTime.Now - _jumpStarted.Value).TotalSeconds;
+			_player.CrossfadeToClip("Run", AnimationCrossFadeDelay, AnimationFlags.Looped);
+			_animationState = AnimationState.Running;
+		}
+		else if (_animationState != AnimationState.Idle && !isRunning)
+		{
+			_player.CrossfadeToClip("Idle", AnimationCrossFadeDelay, AnimationFlags.Looped);
+			_animationState = AnimationState.Idle;
+		}
 
-			// Height from kinematic equation: h = v0*t - 0.5*g*t^2
-			var jumpHeight = JumpForce * t - (0.5f * Gravity * t * t);
+		// Apply velocity to hero position
+		_heroPosition += velocity;
 
-			// Apply height and preserve horizontal momentum
-			_heroPosition.Y = jumpHeight;
-			_heroPosition += _jumpMovement;
+		// Initiate jump with momentum preservation
+		if (keyboard.IsKeyDown(Keys.Space))
+		{
+			_jumpStarted = DateTime.Now;
+			_animationState = AnimationState.Jumping;
+			_jumpMovement = velocity;
+			_player.CrossfadeToClip("JumpStart", AnimationCrossFadeDelay);
+		}
+	}
 
-			// Vertical velocity: v = v0 - g*t (positive = upward, negative = falling)
-			var jumpVelocity = JumpForce - Gravity * t;
+	// Update hero position and animation during jump using projectile motion
+	private void UpdateJump()
+	{
+		// Time elapsed since jump started (seconds)
+		var t = (float)(DateTime.Now - _jumpStarted.Value).TotalSeconds;
 
-			// Start falling animation once we fall below height 2
-			if (jumpVelocity < 0 && _heroPosition.Y < 2 && _animationState != AnimationState.Landing)
-			{
-				_player.CrossfadeToClip("JumpEnd", AnimationCrossFadeDelay);
-				_animationState = AnimationState.Landing;
-			}
+		// Height from kinematic equation: h = v0*t - 0.5*g*t^2
+		var jumpHeight = JumpForce * t - (0.5f * Gravity * t * t);
 
-			// Land when reaching ground
-			if (_heroPosition.Y <= DefaultY)
-			{
-				_heroPosition.Y = DefaultY;
-				_jumpStarted = null;
-			}
+		// Apply height and preserve horizontal momentum
+		_heroPosition.Y = jumpHeight;
+		_heroPosition += _jumpMovement;
+
+		// Vertical velocity: v = v0 - g*t (positive = upward, negative = falling)
+		var jumpVelocity = JumpForce - Gravity * t;
+
+		// Start falling animation once we fall below height 2
+		if (jumpVelocity < 0 && _heroPosition.Y < 2 && _animationState != AnimationState.Landing)
+		{
+			_player.CrossfadeToClip("JumpEnd", AnimationCrossFadeDelay);
+			_animationState = AnimationState.Landing;
+		}
+
+		// Land when reaching ground
+		if (_heroPosition.Y <= DefaultY)
+		{
+			_heroPosition.Y = DefaultY;
+			_jumpStarted = null;
 		}
 	}
 
@@ -243,7 +243,15 @@ public class MyGame : Game
 		base.Update(gameTime);
 
 		ProcessMouse();
-		ProcessKeyboard();
+
+		if (_jumpStarted == null)
+		{
+			ProcessKeyboard();
+		}
+		else
+		{
+			UpdateJump();
+		}
 
 		_player.Update(gameTime.ElapsedGameTime);
 	}
