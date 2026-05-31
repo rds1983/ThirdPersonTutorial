@@ -9,7 +9,7 @@ using System.IO;
 
 namespace ThirdPersonTutorial;
 
-public class ViewerGame : Game
+public class MyGame : Game
 {
 	// Mouse look sensitivity multiplier
 	private const float MouseSensitivity = 0.2f;
@@ -59,7 +59,7 @@ public class ViewerGame : Game
 	private Vector3 _jumpMovement;
 
 	/// <summary>Initializes the game with graphics and input configuration.</summary>
-	public ViewerGame()
+	public MyGame()
 	{
 		// Set up graphics device with preferred window resolution
 		_graphics = new GraphicsDeviceManager(this)

@@ -11,7 +11,7 @@ class Program
 		AMBConfiguration.Logger = Console.WriteLine;
 
 		// Create and run the game instance
-		using (var game = new ViewerGame())
+		using (var game = new MyGame())
 		{
 			game.Run();
 		}
