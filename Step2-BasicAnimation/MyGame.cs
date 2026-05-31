@@ -13,7 +13,7 @@ namespace ThirdPersonTutorial;
 
 public class MyGame : Game
 {
-	// Animation states for hero character
+	// Animation states for the hero character
 	private enum AnimationState
 	{
 		Idle,      // Standing still
@@ -36,7 +36,7 @@ public class MyGame : Game
 	private const float DefaultY = 0;
 	// Jump gravity acceleration per second
 	private const float Gravity = 12f;
-	// Jump initial velocity
+	// Initial jump velocity
 	private const float JumpForce = 10f;
 	// Duration for animation transitions between clips
 	private static readonly TimeSpan AnimationCrossFadeDelay = TimeSpan.FromSeconds(0.1f);
@@ -59,10 +59,10 @@ public class MyGame : Game
 
 	// Hero character model instance
 	private DrModelInstance _modelHero;
-	// Sword weapon model instance
+	// Sword model instance
 	private DrModelInstance _modelSword;
-	// Reference to hero's spine bone for sword attachment
-	private DrModelBone _boneSpine;
+	// Bone where sword is attached
+	private DrModelBone _swordAttachBone;
 
 	// Animation state machine for playing and transitioning clips
 	private AnimationController _player;
@@ -72,10 +72,10 @@ public class MyGame : Game
 	// Hero position in world space
 	private Vector3 _heroPosition;
 
-	// Hero body yaw rotation in degrees
+	// Hero's body yaw rotation in degrees
 	private float _heroYaw;
 
-	// Camera mount pitch rotation in degrees
+	// Camera mount's pitch rotation in degrees
 	private float _cameraMountPitch;
 
 	// Previous mouse state for delta calculation
@@ -113,7 +113,7 @@ public class MyGame : Game
 		_meshGround = MeshPrimitives.CreatePlaneMesh(GraphicsDevice, uScale: 50, vScale: 50, normalDirection: NormalDirection.UpY);
 
 		var model = assetManager.LoadModel(GraphicsDevice, "Models/mixamo.gltf");
-		_boneSpine = model.FindBoneByName("mixamorig:Spine");
+		_swordAttachBone = model.FindBoneByName("mixamorig:Spine");
 		_modelHero = new DrModelInstance(model);
 		_player = new AnimationController(_modelHero);
 		_player.StartClip("Idle", AnimationFlags.Looped);
@@ -155,8 +155,8 @@ public class MyGame : Game
 			var verticalRotation = -(int)((mouse.Y - _oldMouse.Value.Y) * MouseSensitivity);
 			_cameraMountPitch += verticalRotation;
 
-			// Clamp pitch to valid range (-20 to 70 degrees)
-			_cameraMountPitch = MathHelper.Clamp(_cameraMountPitch, -20, 70);
+			// Clamp pitch to valid range (5 to 90 degrees)
+			_cameraMountPitch = MathHelper.Clamp(_cameraMountPitch, 5, 90);
 		}
 
 		_oldMouse = mouse;
@@ -209,21 +209,22 @@ public class MyGame : Game
 		}
 		else
 		{
-			// When moving with acceleration
-			// Formula for the jump height: h = h0 + v0 * t - 0.5 * g * t^2
-			// Where h0 is the initial height(DefaultY), v0 is the initial jump velocity(JumpForce), g is the gravity(JumpGravity), and t is the time passed since jump started
-
+			// Time elapsed since jump started (seconds)
 			var t = (float)(DateTime.Now - _jumpStarted.Value).TotalSeconds;
 
-			var jumpVelocity = JumpForce - Gravity * t;
+			// Height from kinematic equation: h = v0*t - 0.5*g*t^2
 			var jumpHeight = JumpForce * t - (0.5f * Gravity * t * t);
 
+			// Apply height and preserve horizontal momentum
 			_heroPosition.Y = jumpHeight;
 			_heroPosition += _jumpMovement;
 
+			// Vertical velocity: v = v0 - g*t (positive = upward, negative = falling)
+			var jumpVelocity = JumpForce - Gravity * t;
+
+			// Start falling animation once we fall below height 2
 			if (jumpVelocity < 0 && _heroPosition.Y < 2 && _animationState != AnimationState.Landing)
 			{
-				// Falling down, start falling animation when reaching jump apex
 				_player.CrossfadeToClip("JumpEnd", AnimationCrossFadeDelay);
 				_animationState = AnimationState.Landing;
 			}
@@ -356,10 +357,10 @@ public class MyGame : Game
 		DrawMesh(_meshGround, Matrix.CreateScale(200, 1, 200), Color.White, _textureGround);
 		DrawModel(_modelHero, heroTransform);
 
-		// Attach sword to hero's spine bone (positioned on back)
-		// Transform chain: local sword offset -> spine bone transform -> hero world transform
-		// Local offset: position (-12, 0, -20) relative to spine, scale 16x, rotated 180 degrees on Z axis
-		var swordTransform = ToMatrix(new Vector3(-12, 0, -20), new Vector3(16), 0, 0, 180) * _modelHero.GetBoneGlobalTransform(_boneSpine.Index) * heroTransform;
+		// Attach the sword to attachment bone
+		// Transform chain: local sword offset -> attachment bone transform -> hero world transform
+		// Local offset: position (-12, 0, -20), scale 16x, rotated 180 degrees on Z axis
+		var swordTransform = ToMatrix(new Vector3(-12, 0, -20), new Vector3(16), 0, 0, 180) * _modelHero.GetBoneGlobalTransform(_swordAttachBone.Index) * heroTransform;
 		DrawModel(_modelSword, swordTransform);
 	}
 
