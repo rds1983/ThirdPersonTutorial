@@ -123,14 +123,10 @@ public class MyGame : Game
 
 		// Set up rendering effect with lighting
 		_basicEffect = new BasicEffect(GraphicsDevice) { LightingEnabled = true };
-		_basicEffect.DirectionalLight0.Enabled = true;
-		_basicEffect.DirectionalLight0.Direction = new Vector3(-1, -1, -1);
-		_basicEffect.DirectionalLight0.DiffuseColor = Color.White.ToVector3();
+		_basicEffect.EnableDefaultLighting();
 
 		_skinnedEffect = new SkinnedEffect(GraphicsDevice);
-		_skinnedEffect.DirectionalLight0.Enabled = true;
-		_skinnedEffect.DirectionalLight0.Direction = new Vector3(-1, -1, -1);
-		_skinnedEffect.DirectionalLight0.DiffuseColor = Color.White.ToVector3();
+		_skinnedEffect.EnableDefaultLighting();
 
 		_textureWhite = new Texture2D(GraphicsDevice, 1, 1);
 		_textureWhite.SetData(new Color[] { Color.White });
