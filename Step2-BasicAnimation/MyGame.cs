@@ -1,0 +1,364 @@
+using AssetManagementBase;
+using DigitalRiseModel;
+using DigitalRiseModel.Animation;
+using DigitalRiseModel.Primitives;
+using Microsoft.Xna.Framework;
+using Microsoft.Xna.Framework.Graphics;
+using Microsoft.Xna.Framework.Input;
+using System;
+using System.Diagnostics;
+using System.IO;
+
+namespace ThirdPersonTutorial;
+
+public class MyGame : Game
+{
+	private enum AnimationState
+	{
+		Idle,
+		Running,
+		Jumping,
+		Landing
+	}
+
+	// Mouse look sensitivity multiplier
+	private const float MouseSensitivity = 0.2f;
+	// Movement speed per frame
+	private const float MovementSpeed = 0.1f;
+	// Camera near clipping plane
+	private const float NearPlaneDistance = 0.1f;
+	// Camera far clipping plane
+	private const float FarPlaneDistance = 1000.0f;
+	// Camera field of view in degrees
+	private const float ViewAngle = 60.0f;
+	// Hero ground height
+	private const float DefaultY = 0;
+	// Jump gravity acceleration per second
+	private const float Gravity = 12f;
+	// Jump initial velocity
+	private const float JumpForce = 10f;
+	private static readonly TimeSpan AnimationCrossFadeDelay = TimeSpan.FromSeconds(0.1f);
+
+	private readonly GraphicsDeviceManager _graphics;
+
+	// Stock effect with directional lighting and texturing
+	private BasicEffect _basicEffect;
+	private SkinnedEffect _skinnedEffect;
+
+	// Ground plane texture
+	private Texture2D _textureGround;
+	private Texture2D _textureWhite;
+
+	// Ground plane mesh
+	private DrMesh _meshGround;
+
+	private DrModelInstance _modelHero;
+	private DrModelInstance _modelSword;
+	private DrModelBone _boneSpine;
+
+	private AnimationController _player;
+	private AnimationState _animationState;
+
+	// Hero position in world space
+	private Vector3 _heroPosition;
+
+	// Hero body yaw rotation in degrees
+	private float _heroYaw;
+
+	// Camera mount pitch rotation in degrees
+	private float _cameraMountPitch;
+
+	// Previous mouse state for delta calculation
+	private MouseState? _oldMouse = null;
+
+	// Jump state and physics
+	private DateTime? _jumpStarted;
+	private Vector3 _jumpMovement;
+
+	/// <summary>Initializes the game with graphics and input configuration.</summary>
+	public MyGame()
+	{
+		// Set up graphics device with preferred window resolution
+		_graphics = new GraphicsDeviceManager(this)
+		{
+			PreferredBackBufferWidth = 1200,
+			PreferredBackBufferHeight = 800
+		};
+
+		// Show the mouse cursor for this UI
+		IsMouseVisible = true;
+		// Allow the player to resize the window
+		Window.AllowUserResizing = true;
+	}
+
+	protected override void LoadContent()
+	{
+		base.LoadContent();
+
+		// Load ground texture
+		var assetManager = AssetManager.CreateFileAssetManager(Path.Combine(AppContext.BaseDirectory, "Assets"));
+		_textureGround = assetManager.LoadTexture2D(GraphicsDevice, "Textures/checker.dds");
+
+		// Create ground and hero meshes
+		_meshGround = MeshPrimitives.CreatePlaneMesh(GraphicsDevice, uScale: 50, vScale: 50, normalDirection: NormalDirection.UpY);
+
+		var model = assetManager.LoadModel(GraphicsDevice, "Models/mixamo.gltf");
+		_boneSpine = model.FindBoneByName("mixamorig:Spine");
+		_modelHero = new DrModelInstance(model);
+		_player = new AnimationController(_modelHero);
+		_player.StartClip("Idle", AnimationFlags.Looped);
+		_animationState = AnimationState.Idle;
+
+		model = assetManager.LoadModel(GraphicsDevice, "Models/sword.gltf");
+		_modelSword = new DrModelInstance(model);
+
+		// Set up rendering effect with lighting
+		_basicEffect = new BasicEffect(GraphicsDevice) { LightingEnabled = true };
+		_basicEffect.DirectionalLight0.Enabled = true;
+		_basicEffect.DirectionalLight0.Direction = new Vector3(-1, -1, -1);
+		_basicEffect.DirectionalLight0.DiffuseColor = Color.White.ToVector3();
+
+		_skinnedEffect = new SkinnedEffect(GraphicsDevice);
+		_skinnedEffect.DirectionalLight0.Enabled = true;
+		_skinnedEffect.DirectionalLight0.Direction = new Vector3(-1, -1, -1);
+		_skinnedEffect.DirectionalLight0.DiffuseColor = Color.White.ToVector3();
+
+		_textureWhite = new Texture2D(GraphicsDevice, 1, 1);
+		_textureWhite.SetData(new Color[] { Color.White });
+
+		// Start hero at world center
+		_heroPosition = new Vector3(0, DefaultY, 0);
+	}
+
+	private void ProcessMouse()
+	{
+		// Handle mouse input for camera rotation
+		var mouse = Mouse.GetState();
+
+		if (_oldMouse != null)
+		{
+			// Rotate hero by mouse X delta
+			var horizontalRotation = -(int)((mouse.X - _oldMouse.Value.X) * MouseSensitivity);
+			_heroYaw += horizontalRotation;
+
+			// Tilt camera by mouse Y delta
+			var verticalRotation = -(int)((mouse.Y - _oldMouse.Value.Y) * MouseSensitivity);
+			_cameraMountPitch += verticalRotation;
+
+			// Clamp pitch to valid range (-20 to 70 degrees)
+			_cameraMountPitch = MathHelper.Clamp(_cameraMountPitch, -20, 70);
+		}
+
+		_oldMouse = mouse;
+	}
+
+	private void ProcessKeyboard()
+	{
+		// Handle movement and jumping
+		if (_jumpStarted == null)
+		{
+			// WASD movement
+			var velocity = Vector3.Zero;
+			var heroTransform = ToMatrix(_heroPosition, Vector3.One, _heroYaw, 0, 0);
+			var keyboard = Keyboard.GetState();
+
+			var isRunning = true;
+			if (keyboard.IsKeyDown(Keys.W))
+				velocity = heroTransform.Forward * -MovementSpeed;
+			else if (keyboard.IsKeyDown(Keys.S))
+				velocity = heroTransform.Forward * MovementSpeed;
+			else if (keyboard.IsKeyDown(Keys.A))
+				velocity = heroTransform.Right * MovementSpeed;
+			else if (keyboard.IsKeyDown(Keys.D))
+				velocity = heroTransform.Right * -MovementSpeed;
+			else
+				isRunning = false;
+
+			// Update animation state based on movement
+			if (_animationState != AnimationState.Running && isRunning)
+			{
+				_player.CrossfadeToClip("Run", AnimationCrossFadeDelay, AnimationFlags.Looped);
+				_animationState = AnimationState.Running;
+			}
+			else if (_animationState != AnimationState.Idle && !isRunning)
+			{
+				_player.CrossfadeToClip("Idle", AnimationCrossFadeDelay, AnimationFlags.Looped);
+				_animationState = AnimationState.Idle;
+			}
+
+			_heroPosition += velocity;
+
+			if (keyboard.IsKeyDown(Keys.Space))
+			{
+				// Jump
+				_jumpStarted = DateTime.Now;
+				_animationState = AnimationState.Jumping;
+				_jumpMovement = velocity;
+				_player.CrossfadeToClip("JumpStart", AnimationCrossFadeDelay);
+			}
+		}
+		else
+		{
+			// When moving with acceleration
+			// Formula for the jump height: h = h0 + v0 * t - 0.5 * g * t^2
+			// Where h0 is the initial height(DefaultY), v0 is the initial jump velocity(JumpForce), g is the gravity(JumpGravity), and t is the time passed since jump started
+
+			var t = (float)(DateTime.Now - _jumpStarted.Value).TotalSeconds;
+
+			var jumpVelocity = JumpForce - Gravity * t;
+			var jumpHeight = JumpForce * t - (0.5f * Gravity * t * t);
+
+			_heroPosition.Y = jumpHeight;
+			_heroPosition += _jumpMovement;
+
+			if (jumpVelocity < 0 && _heroPosition.Y < 2 && _animationState != AnimationState.Landing)
+			{
+				// Falling down, start falling animation when reaching jump apex
+				_player.CrossfadeToClip("JumpEnd", AnimationCrossFadeDelay);
+				_animationState = AnimationState.Landing;
+			}
+
+			// Land when reaching ground
+			if (_heroPosition.Y <= DefaultY)
+			{
+				_heroPosition.Y = DefaultY;
+				_jumpStarted = null;
+			}
+		}
+	}
+
+	protected override void Update(GameTime gameTime)
+	{
+		base.Update(gameTime);
+
+		ProcessMouse();
+		ProcessKeyboard();
+
+		_player.Update(gameTime.ElapsedGameTime);
+	}
+
+	private void DrawMeshPart(Effect effect, DrMeshPart part)
+	{
+		GraphicsDevice.SetVertexBuffer(part.VertexBuffer);
+		GraphicsDevice.Indices = part.IndexBuffer;
+
+		foreach (var pass in effect.CurrentTechnique.Passes)
+		{
+			pass.Apply();
+			GraphicsDevice.DrawIndexedPrimitives(PrimitiveType.TriangleList, 0, 0, part.PrimitiveCount);
+		}
+	}
+
+
+	/// <summary>Render a mesh with color and texture.</summary>
+	private void DrawMesh(DrMesh mesh, Matrix world, Color color, Texture2D texture)
+	{
+		_basicEffect.DiffuseColor = color.ToVector3();
+		_basicEffect.TextureEnabled = texture != null;
+		_basicEffect.Texture = texture;
+		_basicEffect.World = world;
+
+		var device = GraphicsDevice;
+		foreach (var part in mesh.MeshParts)
+		{
+			device.SetVertexBuffer(part.VertexBuffer);
+			device.Indices = part.IndexBuffer;
+
+			DrawMeshPart(_basicEffect, part);
+		}
+	}
+
+	private void DrawModel(DrModelInstance model, Matrix world)
+	{
+		foreach (var mesh in model.Model.Meshes)
+		{
+			foreach (var part in mesh.MeshParts)
+			{
+				var color = Color.White;
+				var texture = _textureWhite;
+				if (part.Material != null)
+				{
+					color = part.Material.DiffuseColor;
+
+					if (part.Material.DiffuseTexture != null)
+					{
+						texture = part.Material.DiffuseTexture;
+					}
+				}
+
+				if (part.Skin != null)
+				{
+					_skinnedEffect.DiffuseColor = color.ToVector3();
+					_skinnedEffect.Texture = texture;
+					_skinnedEffect.World = world;
+					_skinnedEffect.SetBoneTransforms(model.GetSkinTransforms(part.Skin.SkinIndex));
+
+					DrawMeshPart(_skinnedEffect, part);
+				}
+				else
+				{
+					_basicEffect.DiffuseColor = color.ToVector3();
+					_basicEffect.Texture = texture;
+					_basicEffect.World = model.GetBoneGlobalTransform(mesh.ParentBone.Index) * world;
+
+					DrawMeshPart(_basicEffect, part);
+				}
+			}
+		}
+	}
+
+	protected override void Draw(GameTime gameTime)
+	{
+		base.Draw(gameTime);
+
+		var device = GraphicsDevice;
+		device.Clear(Color.Black);
+
+		// Set GPU states
+		device.DepthStencilState = DepthStencilState.Default;
+		device.RasterizerState = RasterizerState.CullCounterClockwise;
+		device.BlendState = BlendState.AlphaBlend;
+		device.SamplerStates[0] = SamplerState.LinearWrap;
+
+		// Set projection
+		var projection = Matrix.CreatePerspectiveFieldOfView(
+			MathHelper.ToRadians(ViewAngle),
+			device.Viewport.AspectRatio,
+			NearPlaneDistance, FarPlaneDistance);
+		_basicEffect.Projection = projection;
+		_skinnedEffect.Projection = projection;
+
+		// Build camera hierarchy: hero body -> camera mount (head) -> camera
+		var heroTransform = ToMatrix(_heroPosition, Vector3.One, _heroYaw, 0, 0);
+		var cameraMountTransform = ToMatrix(new Vector3(0, 1f, 0), Vector3.One, 0, _cameraMountPitch, 0) * heroTransform;
+		var cameraTransform = ToMatrix(new Vector3(0, 0, -5), Vector3.One, 180, 0, 0) * cameraMountTransform;
+
+		_basicEffect.View = Matrix.Invert(cameraTransform);
+		_skinnedEffect.View = Matrix.Invert(cameraTransform);
+
+		// Draw ground and hero
+		DrawMesh(_meshGround, Matrix.CreateScale(200, 1, 200), Color.White, _textureGround);
+		DrawModel(_modelHero, heroTransform);
+
+		// Attach sword to hero's back
+		var transform = new SrtTransform
+		{
+			Translation = new Vector3(-12f, 0, -20f),
+			Scale = new Vector3(16),
+			Rotation = Quaternion.CreateFromAxisAngle(Vector3.UnitZ, MathHelper.ToRadians(180.0f))
+		};
+
+		var swordTransform = ToMatrix(new Vector3(-12, 0, -20), new Vector3(16), 0, 0, 180) * _modelHero.GetBoneGlobalTransform(_boneSpine.Index) * heroTransform;
+		DrawModel(_modelSword, swordTransform);
+	}
+
+	/// <summary>Build transform matrix from position, scale, and rotation (TRS order).</summary>
+	private static Matrix ToMatrix(Vector3 position, Vector3 scale, float yaw, float pitch, float roll)
+	{
+		var scaleTransform = Matrix.CreateScale(scale);
+		var rotation = Matrix.CreateFromYawPitchRoll(MathHelper.ToRadians(yaw), MathHelper.ToRadians(pitch), MathHelper.ToRadians(roll));
+		var translation = Matrix.CreateTranslation(position);
+
+		return scaleTransform * rotation * translation;
+	}
+}
