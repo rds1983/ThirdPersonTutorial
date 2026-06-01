@@ -38,7 +38,7 @@ public class MyGame : Game
 	// Initial jump velocity
 	private const float JumpForce = 10f;
 	// Duration for animation transitions between clips
-	private static readonly TimeSpan AnimationCrossFadeDelay = TimeSpan.FromSeconds(0.1f);
+	private static readonly TimeSpan AnimationCrossfadeDelay = TimeSpan.FromSeconds(0.2f);
 
 	// Manages graphics device and display settings
 	private readonly GraphicsDeviceManager _graphics;
@@ -181,12 +181,12 @@ public class MyGame : Game
 		// Transition between Run and Idle animations
 		if (_animationState != AnimationState.Running && isRunning)
 		{
-			_player.CrossfadeToClip("Run", AnimationCrossFadeDelay, AnimationFlags.Looped);
+			_player.CrossfadeToClip("Run", AnimationCrossfadeDelay, AnimationFlags.Looped);
 			_animationState = AnimationState.Running;
 		}
 		else if (_animationState != AnimationState.Idle && !isRunning)
 		{
-			_player.CrossfadeToClip("Idle", AnimationCrossFadeDelay, AnimationFlags.Looped);
+			_player.CrossfadeToClip("Idle", AnimationCrossfadeDelay, AnimationFlags.Looped);
 			_animationState = AnimationState.Idle;
 		}
 
@@ -199,7 +199,7 @@ public class MyGame : Game
 			_jumpStarted = DateTime.Now;
 			_animationState = AnimationState.Jumping;
 			_jumpMovement = velocity;
-			_player.CrossfadeToClip("JumpStart", AnimationCrossFadeDelay);
+			_player.CrossfadeToClip("JumpStart", AnimationCrossfadeDelay);
 		}
 	}
 
@@ -222,7 +222,7 @@ public class MyGame : Game
 		// Start falling animation once we fall below height 2
 		if (jumpVelocity < 0 && _heroPosition.Y < 2 && _animationState != AnimationState.Landing)
 		{
-			_player.CrossfadeToClip("JumpEnd", AnimationCrossFadeDelay);
+			_player.CrossfadeToClip("JumpEnd", AnimationCrossfadeDelay);
 			_animationState = AnimationState.Landing;
 		}
 
