@@ -104,13 +104,14 @@ public class MyGame : Game
 	{
 		base.LoadContent();
 
-		// Load ground texture
+		// Set up asset manager and load ground texture
 		var assetManager = AssetManager.CreateFileAssetManager(Path.Combine(AppContext.BaseDirectory, "Assets"));
 		_textureGround = assetManager.LoadTexture2D(GraphicsDevice, "Textures/checker.dds");
 
-		// Create ground and hero meshes
+		// Create ground plane mesh
 		_meshGround = MeshPrimitives.CreatePlaneMesh(GraphicsDevice, uScale: 50, vScale: 50, normalDirection: NormalDirection.UpY);
 
+		// Load hero model and initialize animation controller
 		var model = assetManager.LoadModel(GraphicsDevice, "Models/mixamo.gltf");
 		_swordAttachBone = model.FindBoneByName("mixamorig:Spine");
 		_modelHero = new DrModelInstance(model);
@@ -118,16 +119,19 @@ public class MyGame : Game
 		_player.StartClip("Idle", AnimationFlags.Looped);
 		_animationState = AnimationState.Idle;
 
+		// Load sword model
 		model = assetManager.LoadModel(GraphicsDevice, "Models/sword.gltf");
 		_modelSword = new DrModelInstance(model);
 
-		// Set up rendering effect with lighting
+		// Set up rendering effects with default lighting
 		_basicEffect = new BasicEffect(GraphicsDevice) { LightingEnabled = true };
 		_basicEffect.EnableDefaultLighting();
 
+		// Effect for rendering skeletal meshes with bone transformations
 		_skinnedEffect = new SkinnedEffect(GraphicsDevice);
 		_skinnedEffect.EnableDefaultLighting();
 
+		// Create solid white texture for untextured mesh parts
 		_textureWhite = new Texture2D(GraphicsDevice, 1, 1);
 		_textureWhite.SetData(new Color[] { Color.White });
 
@@ -135,9 +139,9 @@ public class MyGame : Game
 		_heroPosition = new Vector3(0, DefaultY, 0);
 	}
 
+	// Handle mouse input for camera rotation
 	private void ProcessMouse()
 	{
-		// Handle mouse input for camera rotation
 		var mouse = Mouse.GetState();
 
 		if (_oldMouse != null)
@@ -291,6 +295,7 @@ public class MyGame : Game
 		{
 			foreach (var part in mesh.MeshParts)
 			{
+				// Extract material properties or use defaults if no material assigned
 				var color = Color.White;
 				var texture = _textureWhite;
 				if (part.Material != null)
