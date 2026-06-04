@@ -5,7 +5,9 @@ VisualStudioVersion = 18.5.11723.231
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Step1-Capsule.MonoGame.DesktopGL", "Step1-Capsule\Step1-Capsule.MonoGame.DesktopGL.csproj", "{AACBD145-BAD2-A5D9-A819-6DF3AC6F15B2}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Step2-BasicAnimation.MonoGame.DesktopGL", "Step2-BasicAnimation\Step2-BasicAnimation.MonoGame.DesktopGL.csproj", "{20A191D6-36D2-1875-9F61-64D2E0965E69}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Step2-Refactor.MonoGame.DesktopGL", "Step2-Refactor\Step2-Refactor.MonoGame.DesktopGL.csproj", "{10222E70-0E82-14D4-EC64-FF223D0E26BD}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "StepX-BasicAnimation.MonoGame.DesktopGL", "StepX-BasicAnimation\StepX-BasicAnimation.MonoGame.DesktopGL.csproj", "{64451164-9742-4485-3038-C022B2E1B106}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -17,10 +19,14 @@ Global
 		{AACBD145-BAD2-A5D9-A819-6DF3AC6F15B2}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{AACBD145-BAD2-A5D9-A819-6DF3AC6F15B2}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{AACBD145-BAD2-A5D9-A819-6DF3AC6F15B2}.Release|Any CPU.Build.0 = Release|Any CPU
-		{20A191D6-36D2-1875-9F61-64D2E0965E69}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{20A191D6-36D2-1875-9F61-64D2E0965E69}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{20A191D6-36D2-1875-9F61-64D2E0965E69}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{20A191D6-36D2-1875-9F61-64D2E0965E69}.Release|Any CPU.Build.0 = Release|Any CPU
+		{10222E70-0E82-14D4-EC64-FF223D0E26BD}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{10222E70-0E82-14D4-EC64-FF223D0E26BD}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{10222E70-0E82-14D4-EC64-FF223D0E26BD}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{10222E70-0E82-14D4-EC64-FF223D0E26BD}.Release|Any CPU.Build.0 = Release|Any CPU
+		{64451164-9742-4485-3038-C022B2E1B106}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{64451164-9742-4485-3038-C022B2E1B106}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{64451164-9742-4485-3038-C022B2E1B106}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{64451164-9742-4485-3038-C022B2E1B106}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
