@@ -11,6 +11,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "StepX-BasicAnimation.MonoGa
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Step3-Model.MonoGame.DesktopGL", "Step3-Model\Step3-Model.MonoGame.DesktopGL.csproj", "{C99C46CD-7497-7CFD-8869-53E95D7D8469}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Step4-AnimationController.MonoGame.DesktopGL", "Step4-AnimationController\Step4-AnimationController.MonoGame.DesktopGL.csproj", "{244235B8-7BB0-6716-397D-1D457A7EB4F9}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -33,6 +35,10 @@ Global
 		{C99C46CD-7497-7CFD-8869-53E95D7D8469}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{C99C46CD-7497-7CFD-8869-53E95D7D8469}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{C99C46CD-7497-7CFD-8869-53E95D7D8469}.Release|Any CPU.Build.0 = Release|Any CPU
+		{244235B8-7BB0-6716-397D-1D457A7EB4F9}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{244235B8-7BB0-6716-397D-1D457A7EB4F9}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{244235B8-7BB0-6716-397D-1D457A7EB4F9}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{244235B8-7BB0-6716-397D-1D457A7EB4F9}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
