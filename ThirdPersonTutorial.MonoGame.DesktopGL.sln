@@ -13,6 +13,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Step3-Model.MonoGame.Deskto
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Step4-AnimationController.MonoGame.DesktopGL", "Step4-AnimationController\Step4-AnimationController.MonoGame.DesktopGL.csproj", "{244235B8-7BB0-6716-397D-1D457A7EB4F9}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Step5-BasicAnimations.MonoGame.DesktopGL", "Step5-BasicAnimations\Step5-BasicAnimations.MonoGame.DesktopGL.csproj", "{9B6CCD90-6797-D736-8C3D-B94F381536A0}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -39,6 +41,10 @@ Global
 		{244235B8-7BB0-6716-397D-1D457A7EB4F9}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{244235B8-7BB0-6716-397D-1D457A7EB4F9}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{244235B8-7BB0-6716-397D-1D457A7EB4F9}.Release|Any CPU.Build.0 = Release|Any CPU
+		{9B6CCD90-6797-D736-8C3D-B94F381536A0}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{9B6CCD90-6797-D736-8C3D-B94F381536A0}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{9B6CCD90-6797-D736-8C3D-B94F381536A0}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{9B6CCD90-6797-D736-8C3D-B94F381536A0}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
