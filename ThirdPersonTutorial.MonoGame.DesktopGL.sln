@@ -7,8 +7,6 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Step1-Capsule.MonoGame.Desk
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Step2-Refactor.MonoGame.DesktopGL", "Step2-Refactor\Step2-Refactor.MonoGame.DesktopGL.csproj", "{10222E70-0E82-14D4-EC64-FF223D0E26BD}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "StepX-BasicAnimation.MonoGame.DesktopGL", "StepX-BasicAnimation\StepX-BasicAnimation.MonoGame.DesktopGL.csproj", "{64451164-9742-4485-3038-C022B2E1B106}"
-EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Step3-Model.MonoGame.DesktopGL", "Step3-Model\Step3-Model.MonoGame.DesktopGL.csproj", "{C99C46CD-7497-7CFD-8869-53E95D7D8469}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Step4-AnimationController.MonoGame.DesktopGL", "Step4-AnimationController\Step4-AnimationController.MonoGame.DesktopGL.csproj", "{244235B8-7BB0-6716-397D-1D457A7EB4F9}"
@@ -31,10 +29,6 @@ Global
 		{10222E70-0E82-14D4-EC64-FF223D0E26BD}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{10222E70-0E82-14D4-EC64-FF223D0E26BD}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{10222E70-0E82-14D4-EC64-FF223D0E26BD}.Release|Any CPU.Build.0 = Release|Any CPU
-		{64451164-9742-4485-3038-C022B2E1B106}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{64451164-9742-4485-3038-C022B2E1B106}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{64451164-9742-4485-3038-C022B2E1B106}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{64451164-9742-4485-3038-C022B2E1B106}.Release|Any CPU.Build.0 = Release|Any CPU
 		{C99C46CD-7497-7CFD-8869-53E95D7D8469}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{C99C46CD-7497-7CFD-8869-53E95D7D8469}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{C99C46CD-7497-7CFD-8869-53E95D7D8469}.Release|Any CPU.ActiveCfg = Release|Any CPU

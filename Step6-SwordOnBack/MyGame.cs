@@ -128,7 +128,7 @@ public class MyGame : Game
 		_modelSword = new DrModelInstance(model);
 
 		// Set the bone we will attach the sword to
-		_swordAttachBone = model.FindBoneByName("mixamorig:Spine");
+		_swordAttachBone = _modelHero.Model.FindBoneByName("mixamorig:Spine");
 
 		// Set up rendering effect with lighting
 		_basicEffect = new BasicEffect(GraphicsDevice) { LightingEnabled = true };
