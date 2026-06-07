@@ -39,6 +39,8 @@ public class MyGame : Game
 	private const float JumpForce = 10f;
 	// Duration for animation transitions between clips
 	private static readonly TimeSpan AnimationCrossfadeDelay = TimeSpan.FromSeconds(0.2f);
+	// Sword local transform: position offset (-12, 0, -20), scale 16x, rotated 180 degrees on Z axis (sheathed on back)
+	private static readonly Matrix _swordSheathedTransform = ToMatrix(new Vector3(-12, 0, -20), new Vector3(16), 0, 0, 180);
 
 	private readonly GraphicsDeviceManager _graphics;
 
@@ -368,9 +370,8 @@ public class MyGame : Game
 		DrawModel(_modelHero, heroTransform);
 
 		// Attach the sword to attachment bone
-		// Transform chain: local sword offset -> attachment bone transform -> hero world transform
-		// Local offset: position (-12, 0, -20), scale 16x, rotated 180 degrees on Z axis
-		var swordTransform = ToMatrix(new Vector3(-12, 0, -20), new Vector3(16), 0, 0, 180) * _modelHero.GetBoneGlobalTransform(_swordAttachBone.Index) * heroTransform;
+		// Transform chain: _swordSheathedTransform (local offset) -> attachment bone transform -> hero world transform
+		var swordTransform = _swordSheathedTransform * _modelHero.GetBoneGlobalTransform(_swordAttachBone.Index) * heroTransform;
 		DrawModel(_modelSword, swordTransform);
 	}
 
