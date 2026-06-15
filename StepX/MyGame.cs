@@ -23,10 +23,10 @@ public class MyGame : Game
 
 	private enum WeaponState
 	{
-		Sheathed,
-		Drawing,
-		Drawn,
-		Sheathing
+		Sheathed,  // Sword on back
+		Drawing,   // Draw animation playing
+		Drawn,     // Sword in hand
+		Sheathing  // Sheath animation playing
 	}
 
 	// Mouse look sensitivity multiplier
@@ -49,6 +49,7 @@ public class MyGame : Game
 	private static readonly TimeSpan AnimationCrossfadeDelay = TimeSpan.FromSeconds(0.2f);
 	// Sword local transform: position offset (-12, 0, -20), scale 16x, rotated 180 degrees on Z axis (sheathed on back)
 	private static readonly Matrix SwordSheathedTransform = ToMatrix(new Vector3(-12, 0, -20), new Vector3(16), 0, 0, 180);
+	// Sword local transform: position offset (50, 0, 0), scale 16x, rotated 270 degrees on Z axis (drawn in hand)
 	private static readonly Matrix SwordDrawnTransform = ToMatrix(new Vector3(50f, 0f, 0f), new Vector3(16), 0, 0, 270);
 
 	private readonly GraphicsDeviceManager _graphics;
@@ -72,8 +73,10 @@ public class MyGame : Game
 	private DrModelInstance _modelHero;
 	// Sword model instance
 	private DrModelInstance _modelSword;
-	// Bone where sword is attached
-	private DrModelBone _swordAttachBone;
+
+	// Bones for sword attachment (spine for sheathed, right hand for drawn)
+	private DrModelBone _boneSpine, _boneHand;
+	// Whether sword is in right hand (vs sheathed on back)
 	private bool _swordInHand = false;
 
 	// Animation state machine for playing and transitioning clips
@@ -81,6 +84,7 @@ public class MyGame : Game
 
 	// Current animation state
 	private AnimationState _animationState = AnimationState.Idle;
+	// Current weapon state for draw/sheath transitions
 	private WeaponState _weaponState = WeaponState.Sheathed;
 
 	// Hero position in world space
@@ -140,8 +144,8 @@ public class MyGame : Game
 		model = assetManager.LoadModel(GraphicsDevice, "Models/sword.gltf");
 		_modelSword = new DrModelInstance(model);
 
-		// Set the bone we will attach the sword to
-		_swordAttachBone = _modelHero.Model.FindBoneByName("mixamorig:Spine");
+		_boneSpine = _modelHero.Model.FindBoneByName("mixamorig:Spine");
+		_boneHand = _modelHero.Model.FindBoneByName("mixamorig:RightHand");
 
 		// Set up rendering effect with lighting
 		_basicEffect = new BasicEffect(GraphicsDevice) { LightingEnabled = true };
@@ -158,7 +162,6 @@ public class MyGame : Game
 	// Handle mouse input for camera rotation
 	private void ProcessMouse()
 	{
-		// Handle mouse input for camera rotation
 		var mouse = Mouse.GetState();
 
 		if (_oldMouse != null)
@@ -178,6 +181,7 @@ public class MyGame : Game
 		_oldMouse = mouse;
 	}
 
+	// Transition to given animation and weapon state with crossfade
 	private void SetLandAnimation(AnimationState animationState, WeaponState weaponState)
 	{
 		if (_animationState == animationState && _weaponState == weaponState)
@@ -188,9 +192,6 @@ public class MyGame : Game
 		switch (weaponState)
 		{
 			case WeaponState.Sheathed:
-				_swordInHand = false;
-				_swordAttachBone = _modelHero.Model.FindBoneByName("mixamorig:Spine");
-
 				if (animationState == AnimationState.Idle)
 				{
 					_player.CrossfadeToClip("Idle", AnimationCrossfadeDelay, AnimationFlags.Looped);
@@ -224,7 +225,7 @@ public class MyGame : Game
 		_weaponState = weaponState;
 	}
 
-	// Handle keyboard input for movement and jump initiation
+	// Handle keyboard input for movement, weapon draw/sheath, and jump
 	private void ProcessKeyboard()
 	{
 		// Calculate movement velocity based on hero orientation
@@ -250,6 +251,7 @@ public class MyGame : Game
 
 		SetLandAnimation(isRunning ? AnimationState.Running : AnimationState.Idle, _weaponState);
 
+		// Press R to toggle weapon draw/sheath
 		if (keyboard.IsKeyDown(Keys.R))
 		{
 			if (_weaponState == WeaponState.Sheathed)
@@ -266,16 +268,18 @@ public class MyGame : Game
 		{
 			if (_player.HasFinished)
 			{
+				// Wait for draw animation to finish, then switch to Drawn state
 				SetLandAnimation(_animationState, WeaponState.Drawn);
 			}
 			else if (!_swordInHand && _player.Time >= _player.RootNode.Duration / 3)
 			{
 				_swordInHand = true;
-				_swordAttachBone = _modelHero.Model.FindBoneByName("mixamorig:RightHand");
 			}
 		}
 		else if (_weaponState == WeaponState.Sheathing && _player.HasFinished)
 		{
+			// Sheathing finished, return to Sheathed state
+			_swordInHand = false;
 			SetLandAnimation(_animationState, WeaponState.Sheathed);
 		}
 
@@ -445,10 +449,18 @@ public class MyGame : Game
 		DrawMesh(_meshGround, Matrix.CreateScale(200, 1, 200), Color.White, _textureGround);
 		DrawModel(_modelHero, heroTransform);
 
-		// Attach the sword to attachment bone
-		// Transform chain: _swordSheathedTransform (local offset) -> attachment bone transform -> hero world transform
-		var swordLocalTransform = _swordInHand ? SwordDrawnTransform : SwordSheathedTransform;
-		var swordTransform = swordLocalTransform * _modelHero.GetBoneGlobalTransform(_swordAttachBone.Index) * heroTransform;
+		// Attach sword to spine (sheathed) or right hand (drawn)
+		Matrix swordTransform;
+		if (!_swordInHand)
+		{
+			swordTransform = SwordSheathedTransform * _modelHero.GetBoneGlobalTransform(_boneSpine.Index) * heroTransform;
+		}
+		else
+		{
+			swordTransform = SwordDrawnTransform * _modelHero.GetBoneGlobalTransform(_boneHand.Index) * heroTransform;
+		}
+
+		// Draw sword
 		DrawModel(_modelSword, swordTransform);
 	}
 
