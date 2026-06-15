@@ -15,6 +15,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Step5-BasicAnimations.MonoG
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Step6-SwordOnBack.MonoGame.DesktopGL", "Step6-SwordOnBack\Step6-SwordOnBack.MonoGame.DesktopGL.csproj", "{D4AC05A4-BFFA-F76C-3927-7643ADE06A9A}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "StepX.MonoGame.DesktopGL", "StepX\StepX.MonoGame.DesktopGL.csproj", "{8AF2192A-11D3-EA2B-1547-22313738C6D0}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -45,6 +47,10 @@ Global
 		{D4AC05A4-BFFA-F76C-3927-7643ADE06A9A}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{D4AC05A4-BFFA-F76C-3927-7643ADE06A9A}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{D4AC05A4-BFFA-F76C-3927-7643ADE06A9A}.Release|Any CPU.Build.0 = Release|Any CPU
+		{8AF2192A-11D3-EA2B-1547-22313738C6D0}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{8AF2192A-11D3-EA2B-1547-22313738C6D0}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{8AF2192A-11D3-EA2B-1547-22313738C6D0}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{8AF2192A-11D3-EA2B-1547-22313738C6D0}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
