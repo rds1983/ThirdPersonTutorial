@@ -26,7 +26,8 @@ public class MyGame : Game
 		Sheathed,  // Sword on back
 		Drawing,   // Draw animation playing
 		Drawn,     // Sword in hand
-		Sheathing  // Sheath animation playing
+		Sheathing, // Sheath animation playing
+		Slashing   // Slash attack animation playing
 	}
 
 	// Mouse look sensitivity multiplier
@@ -76,6 +77,14 @@ public class MyGame : Game
 
 	// Bones for sword attachment (spine for sheathed, right hand for drawn)
 	private DrModelBone _boneSpine, _boneHand;
+
+	// Blended animations: lower body runs while upper body performs weapon action
+	private AnimationBlendNode _runDrawAnimation;
+	private AnimationBlendLayer _runDrawLayer;
+	private AnimationBlendNode _runSheathAnimation;
+	private AnimationBlendLayer _runSheathLayer;
+	private AnimationBlendNode _runSlashAnimation;
+	private AnimationBlendLayer _runSlashLayer;
 
 	// Whether sword is in right hand (vs sheathed on back)
 	private bool _swordInHand = false;
@@ -141,13 +150,35 @@ public class MyGame : Game
 		_player = new AnimationController(_modelHero);
 		_player.StartClip("Idle", AnimationFlags.Looped);
 
+		// Look up bones for sword attachment points
+		_boneSpine = model.FindBoneByName("mixamorig:Spine");
+		_boneHand = model.FindBoneByName("mixamorig:RightHand");
+
+		// Bone filters to isolate upper body (spine and above) for weapon animations
+		var topFilter = model.CreateBoneFilter("mixamorig:Spine");
+		var bottomFilter = model.CreateInverseBoneFilter(topFilter);
+
+		// Blended animation: run with draw (lower body runs, upper body draws)
+		_runDrawAnimation = new AnimationBlendNode();
+		_runDrawAnimation.AddLayer(model.Animations["Run"], AnimationFlags.Looped).BoneFilter = bottomFilter;
+		_runDrawLayer = _runDrawAnimation.AddLayer(model.Animations["DrawGreatSword"]);
+		_runDrawLayer.BoneFilter = topFilter;
+
+		// Blended animation: run with sheath (lower body runs with greatsword, upper body sheaths)
+		_runSheathAnimation = new AnimationBlendNode();
+		_runSheathAnimation.AddLayer(model.Animations["RunGreatSword"], AnimationFlags.Looped).BoneFilter = bottomFilter;
+		_runSheathLayer = _runSheathAnimation.AddLayer(model.Animations["DrawGreatSword"], AnimationFlags.PlayBackwards);
+		_runSheathLayer.BoneFilter = topFilter;
+
+		// Blended animation: run with slash (lower body runs with greatsword, upper body slashes)
+		_runSlashAnimation = new AnimationBlendNode();
+		_runSlashAnimation.AddLayer(model.Animations["RunGreatSword"], AnimationFlags.Looped).BoneFilter = bottomFilter;
+		_runSlashLayer = _runSlashAnimation.AddLayer(model.Animations["SlashGreatSword"]);
+		_runSlashLayer.BoneFilter = topFilter;
+
 		// Load sword model
 		model = assetManager.LoadModel(GraphicsDevice, "Models/sword.gltf");
 		_modelSword = new DrModelInstance(model);
-
-		// Look up bones for sword attachment points
-		_boneSpine = _modelHero.Model.FindBoneByName("mixamorig:Spine");
-		_boneHand = _modelHero.Model.FindBoneByName("mixamorig:RightHand");
 
 		// Set up rendering effect with lighting
 		_basicEffect = new BasicEffect(GraphicsDevice) { LightingEnabled = true };
@@ -161,7 +192,7 @@ public class MyGame : Game
 		_heroPosition = new Vector3(0, DefaultY, 0);
 	}
 
-	// Handle mouse input for camera rotation
+	// Handle mouse input for camera rotation and slash attack
 	private void ProcessMouse()
 	{
 		var mouse = Mouse.GetState();
@@ -178,6 +209,12 @@ public class MyGame : Game
 
 			// Clamp pitch to valid range (5 to 90 degrees)
 			_cameraMountPitch = MathHelper.Clamp(_cameraMountPitch, 5, 90);
+		}
+
+		// Left click to slash when sword is drawn
+		if (mouse.LeftButton == ButtonState.Pressed && _weaponState == WeaponState.Drawn)
+		{
+			SetLandAnimation(_animationState, WeaponState.Slashing);
 		}
 
 		_oldMouse = mouse;
@@ -205,12 +242,29 @@ public class MyGame : Game
 				}
 
 				break;
+
 			case WeaponState.Drawing:
-				// Play draw animation forward once
-				_player.CrossfadeToClip("DrawGreatSword", AnimationCrossfadeDelay);
+				if (animationState == AnimationState.Idle)
+				{
+					_player.CrossfadeToClip("DrawGreatSword", AnimationCrossfadeDelay);
+				}
+				else
+				{
+					// Sync upper-body draw to current animation time when already drawing
+					if (_weaponState != WeaponState.Drawing)
+					{
+						_runDrawLayer.TimeOffset = TimeSpan.Zero;
+					}
+					else
+					{
+						_runDrawLayer.TimeOffset = _player.Time;
+					}
+
+					_player.CrossfadeToClip(_runDrawAnimation, AnimationCrossfadeDelay);
+				}
 				break;
+
 			case WeaponState.Drawn:
-				// Use greatsword-ready animations
 				if (animationState == AnimationState.Idle)
 				{
 					_player.CrossfadeToClip("IdleGreatSword", AnimationCrossfadeDelay, AnimationFlags.Looped);
@@ -221,9 +275,47 @@ public class MyGame : Game
 				}
 
 				break;
+
 			case WeaponState.Sheathing:
-				// Play draw animation in reverse to sheath
-				_player.CrossfadeToClip("DrawGreatSword", AnimationCrossfadeDelay, AnimationFlags.PlayBackwards);
+				if (animationState == AnimationState.Idle)
+				{
+					_player.CrossfadeToClip("DrawGreatSword", AnimationCrossfadeDelay, AnimationFlags.PlayBackwards);
+				}
+				else
+				{
+					// Sync upper-body sheath to current animation time when already sheathing
+					if (_weaponState != WeaponState.Sheathing)
+					{
+						_runSheathLayer.TimeOffset = TimeSpan.Zero;
+					}
+					else
+					{
+						_runSheathLayer.TimeOffset = _player.Time;
+					}
+
+					_player.CrossfadeToClip(_runSheathAnimation, AnimationCrossfadeDelay);
+				}
+				break;
+
+			case WeaponState.Slashing:
+				if (animationState == AnimationState.Idle)
+				{
+					_player.CrossfadeToClip("SlashGreatSword", AnimationCrossfadeDelay);
+				}
+				else
+				{
+					// Sync upper-body slash to current animation time when already slashing
+					if (_weaponState != WeaponState.Slashing)
+					{
+						_runSlashLayer.TimeOffset = TimeSpan.Zero;
+					}
+					else
+					{
+						_runSlashLayer.TimeOffset = _player.Time;
+					}
+
+					_player.CrossfadeToClip(_runSlashAnimation, AnimationCrossfadeDelay);
+				}
 				break;
 		}
 
@@ -270,25 +362,6 @@ public class MyGame : Game
 			}
 		}
 
-		if (_weaponState == WeaponState.Drawing)
-		{
-			if (_player.HasFinished)
-			{
-				// Wait for draw animation to finish, then switch to Drawn state
-				SetLandAnimation(_animationState, WeaponState.Drawn);
-			}
-			else if (!_swordInHand && _player.Time >= _player.RootNode.Duration / 3)
-			{
-				_swordInHand = true;
-			}
-		}
-		else if (_weaponState == WeaponState.Sheathing && _player.HasFinished)
-		{
-			// Sheathing finished, return to Sheathed state
-			_swordInHand = false;
-			SetLandAnimation(_animationState, WeaponState.Sheathed);
-		}
-
 		// Initiate jump with momentum preservation
 		if ((_weaponState == WeaponState.Sheathed || _weaponState == WeaponState.Drawn) && keyboard.IsKeyDown(Keys.Space))
 		{
@@ -330,6 +403,35 @@ public class MyGame : Game
 		}
 	}
 
+	// Monitor and progress weapon animation states (draw/sheath/slash)
+	private void UpdateAnimations()
+	{
+		if (_weaponState == WeaponState.Drawing)
+		{
+			if (_player.HasFinished)
+			{
+				// Draw animation finished, switch to Drawn state
+				SetLandAnimation(_animationState, WeaponState.Drawn);
+			}
+			else if (!_swordInHand && _player.Time >= _player.RootNode.Duration / 3)
+			{
+				// Move sword to hand at one-third through the draw animation
+				_swordInHand = true;
+			}
+		}
+		else if (_weaponState == WeaponState.Sheathing && _player.HasFinished)
+		{
+			// Sheathing finished, return to Sheathed state
+			_swordInHand = false;
+			SetLandAnimation(_animationState, WeaponState.Sheathed);
+		}
+		else if (_weaponState == WeaponState.Slashing && _player.HasFinished)
+		{
+			// Slash finished, return to Drawn state
+			SetLandAnimation(_animationState, WeaponState.Drawn);
+		}
+	}
+
 	protected override void Update(GameTime gameTime)
 	{
 		base.Update(gameTime);
@@ -344,6 +446,8 @@ public class MyGame : Game
 		{
 			UpdateJump();
 		}
+
+		UpdateAnimations();
 
 		_player.Update(gameTime.ElapsedGameTime);
 	}
