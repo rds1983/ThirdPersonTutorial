@@ -76,6 +76,7 @@ public class MyGame : Game
 
 	// Bones for sword attachment (spine for sheathed, right hand for drawn)
 	private DrModelBone _boneSpine, _boneHand;
+
 	// Whether sword is in right hand (vs sheathed on back)
 	private bool _swordInHand = false;
 
@@ -144,6 +145,7 @@ public class MyGame : Game
 		model = assetManager.LoadModel(GraphicsDevice, "Models/sword.gltf");
 		_modelSword = new DrModelInstance(model);
 
+		// Look up bones for sword attachment points
 		_boneSpine = _modelHero.Model.FindBoneByName("mixamorig:Spine");
 		_boneHand = _modelHero.Model.FindBoneByName("mixamorig:RightHand");
 
@@ -192,6 +194,7 @@ public class MyGame : Game
 		switch (weaponState)
 		{
 			case WeaponState.Sheathed:
+				// Use standard unarmed animations
 				if (animationState == AnimationState.Idle)
 				{
 					_player.CrossfadeToClip("Idle", AnimationCrossfadeDelay, AnimationFlags.Looped);
@@ -203,9 +206,11 @@ public class MyGame : Game
 
 				break;
 			case WeaponState.Drawing:
+				// Play draw animation forward once
 				_player.CrossfadeToClip("DrawGreatSword", AnimationCrossfadeDelay);
 				break;
 			case WeaponState.Drawn:
+				// Use greatsword-ready animations
 				if (animationState == AnimationState.Idle)
 				{
 					_player.CrossfadeToClip("IdleGreatSword", AnimationCrossfadeDelay, AnimationFlags.Looped);
@@ -217,6 +222,7 @@ public class MyGame : Game
 
 				break;
 			case WeaponState.Sheathing:
+				// Play draw animation in reverse to sheath
 				_player.CrossfadeToClip("DrawGreatSword", AnimationCrossfadeDelay, AnimationFlags.PlayBackwards);
 				break;
 		}
