@@ -214,158 +214,163 @@ public class MyGame : Game
 		// Left click to slash when sword is drawn
 		if (mouse.LeftButton == ButtonState.Pressed && _weaponState == WeaponState.Drawn)
 		{
-			SetLandAnimation(_animationState, WeaponState.Slashing);
+			AnimateWeapon(WeaponState.Slashing);
 		}
 
 		_oldMouse = mouse;
 	}
 
-	private void TransitionFromIdle(AnimationState newAnimationState, WeaponState newWeaponState)
+	private void AnimateIdle()
 	{
-		switch (_weaponState)
-		{
-			case WeaponState.Sheathed:
-				if (newAnimationState == AnimationState.Running)
-				{
-					_player.CrossfadeToClip("Run", AnimationCrossfadeDelay, AnimationFlags.Looped);
-				}
-				else if (newWeaponState == WeaponState.Drawing)
-				{
-					_player.CrossfadeToClip("DrawGreatSword", AnimationCrossfadeDelay);
-				}
-				break;
-			case WeaponState.Drawing:
-				if (newAnimationState == AnimationState.Running)
-				{
-					_runDrawLayer.TimeOffset = _player.Time;
-					_player.CrossfadeToClip(_runDrawAnimation, AnimationCrossfadeDelay);
-				} else if (newWeaponState == WeaponState.Drawn)
-				{
-					_player.CrossfadeToClip("IdleGreatSword", AnimationCrossfadeDelay, AnimationFlags.Looped);
-				}
-				break;
-			case WeaponState.Drawn:
-				if (newAnimationState == AnimationState.Running)
-				{
-					_player.CrossfadeToClip("RunGreatSword", AnimationCrossfadeDelay, AnimationFlags.Looped);
-				}
-				else if (newWeaponState == WeaponState.Sheathing)
-				{
-					_player.CrossfadeToClip("DrawGreatSword", AnimationCrossfadeDelay, AnimationFlags.PlayBackwards);
-				}
-				else if (newWeaponState == WeaponState.Slashing)
-				{
-					_player.CrossfadeToClip("SlashGreatSword", AnimationCrossfadeDelay);
-				}
-				break;
-			case WeaponState.Sheathing:
-				if (newAnimationState == AnimationState.Running)
-				{
-					_runSheathLayer.TimeOffset = _player.Time;
-					_player.CrossfadeToClip(_runSheathAnimation, AnimationCrossfadeDelay);
-				}
-				else if (newWeaponState == WeaponState.Sheathed)
-				{
-					_player.CrossfadeToClip("Idle", AnimationCrossfadeDelay, AnimationFlags.Looped);
-				}
-				break;
-			case WeaponState.Slashing:
-				if (newAnimationState == AnimationState.Running)
-				{
-					_runSlashLayer.TimeOffset = _player.Time;
-					_player.CrossfadeToClip(_runSlashAnimation, AnimationCrossfadeDelay);
-				}
-				else if (newWeaponState == WeaponState.Drawn)
-				{
-					_player.CrossfadeToClip("IdleGreatSword", AnimationCrossfadeDelay, AnimationFlags.Looped);
-				}
-				break;
-		}
-	}
-
-	private void TransitionFromRunning(AnimationState newAnimationState, WeaponState newWeaponState)
-	{
-		switch (_weaponState)
-		{
-			case WeaponState.Sheathed:
-				if (newAnimationState == AnimationState.Idle)
-				{
-					_player.CrossfadeToClip("Idle", AnimationCrossfadeDelay, AnimationFlags.Looped);
-				}
-				else if (newWeaponState == WeaponState.Drawing)
-				{
-					_runDrawLayer.TimeOffset = TimeSpan.Zero;
-					_player.CrossfadeToClip(_runDrawAnimation, AnimationCrossfadeDelay);
-				}
-				break;
-			case WeaponState.Drawing:
-				if (newAnimationState == AnimationState.Idle)
-				{
-					_player.CrossfadeToClip("IdleGreatSword", AnimationCrossfadeDelay, AnimationFlags.Looped);
-				}
-				else if (newWeaponState == WeaponState.Drawn)
-				{
-					_player.CrossfadeToClip("RunGreatSword", AnimationCrossfadeDelay, AnimationFlags.Looped);
-				}
-				break;
-			case WeaponState.Drawn:
-				if (newAnimationState == AnimationState.Idle)
-				{
-					_player.CrossfadeToClip("IdleGreatSword", AnimationCrossfadeDelay, AnimationFlags.Looped);
-				}
-				else if (newWeaponState == WeaponState.Sheathing)
-				{
-					_runSheathLayer.TimeOffset = TimeSpan.Zero;
-					_player.CrossfadeToClip(_runSheathAnimation, AnimationCrossfadeDelay);
-				}
-				else if (newWeaponState == WeaponState.Slashing)
-				{
-					_runSlashLayer.TimeOffset = TimeSpan.Zero;
-					_player.CrossfadeToClip(_runSlashAnimation, AnimationCrossfadeDelay);
-				}
-				break;
-			case WeaponState.Sheathing:
-				if (newAnimationState == AnimationState.Idle)
-				{
-					_player.CrossfadeToClip("IdleGreatSword", AnimationCrossfadeDelay, AnimationFlags.Looped);
-				}
-				else if (newWeaponState == WeaponState.Sheathed)
-				{
-					_player.CrossfadeToClip("Run", AnimationCrossfadeDelay, AnimationFlags.Looped);
-				}
-				break;
-			case WeaponState.Slashing:
-				if (newAnimationState == AnimationState.Idle)
-				{
-					_player.CrossfadeToClip("IdleGreatSword", AnimationCrossfadeDelay, AnimationFlags.Looped);
-				}
-				else if (newWeaponState == WeaponState.Drawn)
-				{
-					_player.CrossfadeToClip("IdleGreatSword", AnimationCrossfadeDelay, AnimationFlags.Looped);
-				}
-				break;
-		}
-	}
-
-	// Transition to given animation and weapon state with crossfade
-	private void SetLandAnimation(AnimationState animationState, WeaponState weaponState)
-	{
-		if (_animationState == animationState && _weaponState == weaponState)
+		if (_animationState == AnimationState.Idle)
 		{
 			return;
 		}
 
-		if (_animationState == AnimationState.Idle)
+		switch (_weaponState)
 		{
-			TransitionFromIdle(animationState, weaponState);
+			case WeaponState.Sheathed:
+				_player.CrossfadeToClip("Idle", AnimationCrossfadeDelay, AnimationFlags.Looped);
+				break;
+
+			case WeaponState.Drawing:
+				{
+					var oldTime = _player.Time;
+					_player.CrossfadeToClip("DrawGreatSword", AnimationCrossfadeDelay);
+					_player.Time = oldTime;
+				}
+				break;
+
+			case WeaponState.Drawn:
+				_player.CrossfadeToClip("IdleGreatSword", AnimationCrossfadeDelay, AnimationFlags.Looped);
+				break;
+
+			case WeaponState.Sheathing:
+				{
+					var oldTime = _player.Time;
+					_player.CrossfadeToClip("DrawGreatSword", AnimationCrossfadeDelay, AnimationFlags.PlayBackwards);
+					_player.Time = oldTime;
+				}
+				break;
+
+			case WeaponState.Slashing:
+				{
+					var oldTime = _player.Time;
+					_player.CrossfadeToClip("SlashGreatSword", AnimationCrossfadeDelay);
+					_player.Time = oldTime;
+				}
+				break;
+		}
+
+		_animationState = AnimationState.Idle;
+	}
+
+	private void AnimateRunning()
+	{
+		if (_animationState == AnimationState.Running)
+		{
+			return;
+		}
+
+		switch (_weaponState)
+		{
+			case WeaponState.Sheathed:
+				_player.CrossfadeToClip("Run", AnimationCrossfadeDelay, AnimationFlags.Looped);
+				break;
+
+			case WeaponState.Drawing:
+				_runDrawAnimation.Layers[0].TimeOffset = TimeSpan.Zero;
+				_player.CrossfadeToClip(_runDrawAnimation, AnimationCrossfadeDelay);
+				break;
+
+			case WeaponState.Drawn:
+				_player.CrossfadeToClip("RunGreatSword", AnimationCrossfadeDelay, AnimationFlags.Looped);
+				break;
+
+			case WeaponState.Sheathing:
+				_runSheathAnimation.Layers[0].TimeOffset = TimeSpan.Zero;
+				_player.CrossfadeToClip(_runSheathAnimation, AnimationCrossfadeDelay);
+				break;
+
+			case WeaponState.Slashing:
+				_runSlashAnimation.Layers[0].TimeOffset = TimeSpan.Zero;
+				_player.CrossfadeToClip(_runSlashAnimation, AnimationCrossfadeDelay);
+				break;
+		}
+
+		_animationState = AnimationState.Running;
+	}
+
+	private void AnimateWeapon(WeaponState newWeaponState)
+	{
+		if (_weaponState == newWeaponState)
+		{
+			return;
+		}
+
+		if (_animationState == AnimationState.Running)
+		{
+			switch (newWeaponState)
+			{
+				case WeaponState.Sheathed:
+					{
+						var oldTime = _player.Time;
+						_player.CrossfadeToClip("Run", AnimationCrossfadeDelay, AnimationFlags.Looped);
+						_player.Time = oldTime;
+					}
+					break;
+
+				case WeaponState.Drawing:
+					_runDrawAnimation.Layers[0].TimeOffset = _player.Time;
+					_player.CrossfadeToClip(_runDrawAnimation, AnimationCrossfadeDelay);
+					break;
+
+				case WeaponState.Drawn:
+					{
+						var oldTime = _player.Time;
+						_player.CrossfadeToClip("RunGreatSword", AnimationCrossfadeDelay, AnimationFlags.Looped);
+						_player.Time = oldTime;
+					}
+					break;
+
+				case WeaponState.Sheathing:
+					_runSheathAnimation.Layers[0].TimeOffset = _player.Time;
+					_player.CrossfadeToClip(_runSheathAnimation, AnimationCrossfadeDelay);
+					break;
+
+				case WeaponState.Slashing:
+					_runSlashAnimation.Layers[0].TimeOffset = _player.Time;
+					_player.CrossfadeToClip(_runSlashAnimation, AnimationCrossfadeDelay);
+					break;
+			}
 		}
 		else
 		{
-			TransitionFromRunning(animationState, weaponState);
+			switch (newWeaponState)
+			{
+				case WeaponState.Sheathed:
+					_player.CrossfadeToClip("Idle", AnimationCrossfadeDelay, AnimationFlags.Looped);
+					break;
+
+				case WeaponState.Drawing:
+					_player.CrossfadeToClip("DrawGreatSword", AnimationCrossfadeDelay);
+					break;
+
+				case WeaponState.Drawn:
+					_player.CrossfadeToClip("IdleGreatSword", AnimationCrossfadeDelay, AnimationFlags.Looped);
+					break;
+
+				case WeaponState.Sheathing:
+					_player.CrossfadeToClip("DrawGreatSword", AnimationCrossfadeDelay, AnimationFlags.PlayBackwards);
+					break;
+
+				case WeaponState.Slashing:
+					_player.CrossfadeToClip("SlashGreatSword", AnimationCrossfadeDelay);
+					break;
+			}
 		}
 
-		_animationState = animationState;
-		_weaponState = weaponState;
+		_weaponState = newWeaponState;
 	}
 
 	// Handle keyboard input for movement, weapon draw/sheath, and jump
@@ -392,18 +397,25 @@ public class MyGame : Game
 		// Apply velocity to hero position
 		_heroPosition += velocity;
 
-		SetLandAnimation(isRunning ? AnimationState.Running : AnimationState.Idle, _weaponState);
+		if (isRunning)
+		{
+			AnimateRunning();
+		}
+		else
+		{
+			AnimateIdle();
+		}
 
 		// Press R to toggle weapon draw/sheath
 		if (keyboard.IsKeyDown(Keys.R))
 		{
 			if (_weaponState == WeaponState.Sheathed)
 			{
-				SetLandAnimation(_animationState, WeaponState.Drawing);
+				AnimateWeapon(WeaponState.Drawing);
 			}
 			else if (_weaponState == WeaponState.Drawn)
 			{
-				SetLandAnimation(_animationState, WeaponState.Sheathing);
+				AnimateWeapon(WeaponState.Sheathing);
 			}
 		}
 
@@ -456,7 +468,7 @@ public class MyGame : Game
 			if (_player.HasFinished)
 			{
 				// Draw animation finished, switch to Drawn state
-				SetLandAnimation(_animationState, WeaponState.Drawn);
+				AnimateWeapon(WeaponState.Drawn);
 			}
 			else if (!_swordInHand && _player.Time >= _player.RootNode.Duration / 3)
 			{
@@ -468,12 +480,12 @@ public class MyGame : Game
 		{
 			// Sheathing finished, return to Sheathed state
 			_swordInHand = false;
-			SetLandAnimation(_animationState, WeaponState.Sheathed);
+			AnimateWeapon(WeaponState.Sheathed);
 		}
 		else if (_weaponState == WeaponState.Slashing && _player.HasFinished)
 		{
 			// Slash finished, return to Drawn state
-			SetLandAnimation(_animationState, WeaponState.Drawn);
+			AnimateWeapon(WeaponState.Drawn);
 		}
 	}
 
