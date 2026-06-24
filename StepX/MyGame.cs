@@ -80,11 +80,8 @@ public class MyGame : Game
 
 	// Blended animations: lower body runs while upper body performs weapon action
 	private AnimationBlendNode _runDrawAnimation;
-	private AnimationBlendLayer _runDrawLayer;
 	private AnimationBlendNode _runSheathAnimation;
-	private AnimationBlendLayer _runSheathLayer;
 	private AnimationBlendNode _runSlashAnimation;
-	private AnimationBlendLayer _runSlashLayer;
 
 	// Whether sword is in right hand (vs sheathed on back)
 	private bool _swordInHand = false;
@@ -161,20 +158,20 @@ public class MyGame : Game
 		// Blended animation: run with draw (lower body runs, upper body draws)
 		_runDrawAnimation = new AnimationBlendNode();
 		_runDrawAnimation.AddLayer(model.Animations["Run"], AnimationFlags.Looped).BoneFilter = bottomFilter;
-		_runDrawLayer = _runDrawAnimation.AddLayer(model.Animations["DrawGreatSword"]);
-		_runDrawLayer.BoneFilter = topFilter;
+		var runDrawLayer = _runDrawAnimation.AddLayer(model.Animations["DrawGreatSword"]);
+		runDrawLayer.BoneFilter = topFilter;
 
 		// Blended animation: run with sheath (lower body runs with greatsword, upper body sheaths)
 		_runSheathAnimation = new AnimationBlendNode();
 		_runSheathAnimation.AddLayer(model.Animations["RunGreatSword"], AnimationFlags.Looped).BoneFilter = bottomFilter;
-		_runSheathLayer = _runSheathAnimation.AddLayer(model.Animations["DrawGreatSword"], AnimationFlags.PlayBackwards);
-		_runSheathLayer.BoneFilter = topFilter;
+		var runSheathLayer = _runSheathAnimation.AddLayer(model.Animations["DrawGreatSword"], AnimationFlags.PlayBackwards);
+		runSheathLayer.BoneFilter = topFilter;
 
 		// Blended animation: run with slash (lower body runs with greatsword, upper body slashes)
 		_runSlashAnimation = new AnimationBlendNode();
 		_runSlashAnimation.AddLayer(model.Animations["RunGreatSword"], AnimationFlags.Looped).BoneFilter = bottomFilter;
-		_runSlashLayer = _runSlashAnimation.AddLayer(model.Animations["SlashGreatSword"]);
-		_runSlashLayer.BoneFilter = topFilter;
+		var runSlashLayer = _runSlashAnimation.AddLayer(model.Animations["SlashGreatSword"]);
+		runSlashLayer.BoneFilter = topFilter;
 
 		// Load sword model
 		model = assetManager.LoadModel(GraphicsDevice, "Models/sword.gltf");
@@ -234,11 +231,7 @@ public class MyGame : Game
 				break;
 
 			case WeaponState.Drawing:
-				{
-					var oldTime = _player.Time;
-					_player.CrossfadeToClip("DrawGreatSword", AnimationCrossfadeDelay);
-					_player.Time = oldTime;
-				}
+				_player.CrossfadeToClip("DrawGreatSword", AnimationCrossfadeDelay, AnimationFlags.KeepTime);
 				break;
 
 			case WeaponState.Drawn:
@@ -246,19 +239,11 @@ public class MyGame : Game
 				break;
 
 			case WeaponState.Sheathing:
-				{
-					var oldTime = _player.Time;
-					_player.CrossfadeToClip("DrawGreatSword", AnimationCrossfadeDelay, AnimationFlags.PlayBackwards);
-					_player.Time = oldTime;
-				}
+				_player.CrossfadeToClip("DrawGreatSword", AnimationCrossfadeDelay, AnimationFlags.PlayBackwards | AnimationFlags.KeepTime);
 				break;
 
 			case WeaponState.Slashing:
-				{
-					var oldTime = _player.Time;
-					_player.CrossfadeToClip("SlashGreatSword", AnimationCrossfadeDelay);
-					_player.Time = oldTime;
-				}
+				_player.CrossfadeToClip("SlashGreatSword", AnimationCrossfadeDelay, AnimationFlags.KeepTime);
 				break;
 		}
 
@@ -279,7 +264,7 @@ public class MyGame : Game
 				break;
 
 			case WeaponState.Drawing:
-				_runDrawAnimation.Layers[0].TimeOffset = TimeSpan.Zero;
+				_runDrawAnimation.Layers[1].TimeOffset = _player.Time;
 				_player.CrossfadeToClip(_runDrawAnimation, AnimationCrossfadeDelay);
 				break;
 
@@ -288,12 +273,12 @@ public class MyGame : Game
 				break;
 
 			case WeaponState.Sheathing:
-				_runSheathAnimation.Layers[0].TimeOffset = TimeSpan.Zero;
+				_runSheathAnimation.Layers[1].TimeOffset = _player.Time;
 				_player.CrossfadeToClip(_runSheathAnimation, AnimationCrossfadeDelay);
 				break;
 
 			case WeaponState.Slashing:
-				_runSlashAnimation.Layers[0].TimeOffset = TimeSpan.Zero;
+				_runSlashAnimation.Layers[1].TimeOffset = _player.Time;
 				_player.CrossfadeToClip(_runSlashAnimation, AnimationCrossfadeDelay);
 				break;
 		}
@@ -313,33 +298,25 @@ public class MyGame : Game
 			switch (newWeaponState)
 			{
 				case WeaponState.Sheathed:
-					{
-						var oldTime = _player.Time;
-						_player.CrossfadeToClip("Run", AnimationCrossfadeDelay, AnimationFlags.Looped);
-						_player.Time = oldTime;
-					}
+					_player.CrossfadeToClip("Run", AnimationCrossfadeDelay, AnimationFlags.Looped);
 					break;
 
 				case WeaponState.Drawing:
-					_runDrawAnimation.Layers[0].TimeOffset = _player.Time;
+					_runDrawAnimation.Layers[1].TimeOffset = TimeSpan.Zero;
 					_player.CrossfadeToClip(_runDrawAnimation, AnimationCrossfadeDelay);
 					break;
 
 				case WeaponState.Drawn:
-					{
-						var oldTime = _player.Time;
-						_player.CrossfadeToClip("RunGreatSword", AnimationCrossfadeDelay, AnimationFlags.Looped);
-						_player.Time = oldTime;
-					}
+					_player.CrossfadeToClip("RunGreatSword", AnimationCrossfadeDelay, AnimationFlags.Looped);
 					break;
 
 				case WeaponState.Sheathing:
-					_runSheathAnimation.Layers[0].TimeOffset = _player.Time;
+					_runSheathAnimation.Layers[1].TimeOffset = TimeSpan.Zero;
 					_player.CrossfadeToClip(_runSheathAnimation, AnimationCrossfadeDelay);
 					break;
 
 				case WeaponState.Slashing:
-					_runSlashAnimation.Layers[0].TimeOffset = _player.Time;
+					_runSlashAnimation.Layers[1].TimeOffset = TimeSpan.Zero;
 					_player.CrossfadeToClip(_runSlashAnimation, AnimationCrossfadeDelay);
 					break;
 			}
